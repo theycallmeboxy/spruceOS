@@ -357,6 +357,39 @@ case "$PLATFORM" in
     ;;
 
 ############################################################
+# GKD 350H Ultra (Rockchip RK3576S, under BasedOS)
+############################################################
+    "GKD350HUltra" )
+        # BasedOS carries the stock libmali (Bifrost G52, GBM/KMS, GLES only) and no compositor,
+        # so SDL draws through KMSDRM, as in the dArkMoss block above, with our usual dll.
+        export PYSDL2_DLL_PATH=/mnt/SDCARD/App/PyUI/dll
+        export LD_LIBRARY_PATH="/mnt/SDCARD/App/PyUI/dll:/mnt/SDCARD/spruce/flip/lib:/usr/lib"
+        export SDL_VIDEODRIVER=kmsdrm
+        export SDL_AUDIODRIVER=alsa
+        # No udev on BasedOS (devtmpfs only): SDL's udev joystick probe must not wait for it.
+        export SDL_JOYSTICK_DISABLE_UDEV=1
+
+        log_message "Starting PyUI on $PLATFORM"
+        if [ $button_listener_mode -eq 1 ]; then
+            /mnt/SDCARD/spruce/flip/bin/MainUI \
+                /mnt/SDCARD/App/PyUI/main-ui/mainui.py \
+                -device ENV_VAR \
+                -logDir /mnt/SDCARD/Saves/spruce \
+                -pyUiConfig /mnt/SDCARD/App/PyUI/py-ui-config.json \
+                -cfwConfig /mnt/SDCARD/Saves/spruce/spruce-config.json "$@"
+        else
+            # Bring-up platform: keep PyUI's stdout/stderr and record how it ended.
+            /mnt/SDCARD/spruce/flip/bin/MainUI \
+                /mnt/SDCARD/App/PyUI/main-ui/mainui.py \
+                -device ENV_VAR \
+                -logDir /mnt/SDCARD/Saves/spruce \
+                -pyUiConfig /mnt/SDCARD/App/PyUI/py-ui-config.json \
+                -cfwConfig /mnt/SDCARD/Saves/spruce/spruce-config.json "$@" >> /mnt/SDCARD/App/PyUI/run.txt 2>&1
+            log_message "PyUI on $PLATFORM exited with status $?"
+        fi
+    ;;
+
+############################################################
 # oakMOSS A133P boards (MagicX Mini Zero 28, Zero 40, XU20 V32; Powkiddy V90S, V20; TrimUI Brick)
 ############################################################
 
