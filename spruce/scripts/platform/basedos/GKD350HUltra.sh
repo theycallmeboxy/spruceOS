@@ -109,10 +109,41 @@ device_bluetooth_down() {
 #####   SLEEP   #####
   ###################
 
-# The kernel offers deep sleep (mem_sleep = s2idle [deep]); no systemd to ask.
+# The kernel offers deep sleep (mem_sleep = s2idle [deep]); no systemd to ask. The write returns
+# after resume. The RTC (hym8563, on always-on GPIO0) wakes the board from deep sleep.
 trigger_device_sleep() {
     sync
     echo mem > /sys/power/state
+}
+
+# sleep_functions.sh's, with the alarm rounded up to a whole minute. The hym8563's alarm has
+# minute resolution and fires at the start of the target minute, up to 59 s before
+# TARGET_EPOCH, and device_woke_via_timer allows only 10 s early: a timed wake was taken for a
+# manual one and the device stayed on (seen on the unit). Rounded up, it never fires early; the
+# cost is up to 59 s more sleep before the shutdown.
+set_wake_alarm() {
+    IDLE_TIMEOUT="$1"
+    WAKE_ALARM_PATH="$2"
+
+    if [ "$IDLE_TIMEOUT" -le 0 ]; then
+        log_message "set_wake_alarm: IDLE_TIMEOUT <= 0, not setting wakealarm"
+        return 0
+    fi
+    _now=$(device_get_hw_epoch)
+    _alarm="$IDLE_TIMEOUT"
+    [ -n "$_now" ] && _alarm=$(( IDLE_TIMEOUT + (60 - (_now + IDLE_TIMEOUT) % 60) % 60 ))
+
+    if [ -e "$WAKE_ALARM_PATH" ]; then
+        echo 0 >"$WAKE_ALARM_PATH" 2>/dev/null
+        if ! echo "+$_alarm" >"$WAKE_ALARM_PATH" 2>/dev/null; then
+            log_message "WARNING: Failed to write WAKE_ALARM_PATH"
+            return 1
+        fi
+        log_message "set_wake_alarm: Wakealarm set for +$_alarm seconds ($IDLE_TIMEOUT rounded up to the RTC's minute)"
+    else
+        log_message "WARNING: WAKE_ALARM_PATH missing, relying on external wake"
+    fi
+    return 0
 }
 
   ###################
