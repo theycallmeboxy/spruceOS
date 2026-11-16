@@ -42,7 +42,7 @@ if [ -e /usr/magicx ]; then
     export PLATFORM_FAMILY="oakmoss"
 # BasedOS on the GKD 350H Ultra (RK3576S): its A53 cores report 0xd03 too, so it is decided by
 # its BaseOS target, before cpuinfo, like oakMOSS above.
-elif grep -q '^BASEOS_TARGET=gkd350hultra$' /etc/baseos-release 2>/dev/null; then
+elif [ -f /etc/baseos-release ] && grep -q '^BASEOS_TARGET=gkd350hultra$' /etc/baseos-release; then
     export PLATFORM="GKD350HUltra"
     export PLATFORM_FAMILY="basedos"
 else
@@ -636,7 +636,6 @@ version_older_than() {
 baseos_repo() {
     case "$(sed -n 's/^BASEOS_TARGET=//p' /etc/baseos-release 2>/dev/null | tr -d '"')" in
         my355) echo "apommel/baseos-my355" ;;
-        gkd350hultra) echo "theycallmeboxy/BasedOS" ;;
         *) echo "pvaibhav/BaseOS" ;;
     esac
 }
