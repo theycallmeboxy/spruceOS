@@ -366,31 +366,22 @@ case "$PLATFORM" in
         # needs a libffi.so.8 BasedOS lacks, and when it wins libgbm fails to load and SDL
         # reports "kmsdrm not available" (seen on the unit). flip's python3.10 has
         # RPATH=$ORIGIN/../lib, which is searched before LD_LIBRARY_PATH, so ordering the path
-        # is not enough: preload the base's copy so the loader reuses it.
+        # is not enough: PyUI alone gets the base's copy preloaded.
         export PYSDL2_DLL_PATH=/mnt/SDCARD/App/PyUI/dll
         export LD_LIBRARY_PATH="/mnt/SDCARD/App/PyUI/dll:/usr/lib:/mnt/SDCARD/spruce/flip/lib"
-        export LD_PRELOAD="/usr/lib/libwayland-client.so.0"
         export SDL_VIDEODRIVER=kmsdrm
         export SDL_AUDIODRIVER=alsa
         # No udev on BasedOS (devtmpfs only): SDL's udev joystick probe must not wait for it.
         export SDL_JOYSTICK_DISABLE_UDEV=1
 
+        set -- LD_PRELOAD=/usr/lib/libwayland-client.so.0 /mnt/SDCARD/spruce/flip/bin/MainUI             /mnt/SDCARD/App/PyUI/main-ui/mainui.py             -device ENV_VAR             -logDir /mnt/SDCARD/Saves/spruce             -pyUiConfig /mnt/SDCARD/App/PyUI/py-ui-config.json             -cfwConfig /mnt/SDCARD/Saves/spruce/spruce-config.json "$@"
+
         log_message "Starting PyUI on $PLATFORM"
         if [ $button_listener_mode -eq 1 ]; then
-            /mnt/SDCARD/spruce/flip/bin/MainUI \
-                /mnt/SDCARD/App/PyUI/main-ui/mainui.py \
-                -device ENV_VAR \
-                -logDir /mnt/SDCARD/Saves/spruce \
-                -pyUiConfig /mnt/SDCARD/App/PyUI/py-ui-config.json \
-                -cfwConfig /mnt/SDCARD/Saves/spruce/spruce-config.json "$@"
+            env "$@"
         else
             # Bring-up platform: keep PyUI's stdout/stderr and record how it ended.
-            /mnt/SDCARD/spruce/flip/bin/MainUI \
-                /mnt/SDCARD/App/PyUI/main-ui/mainui.py \
-                -device ENV_VAR \
-                -logDir /mnt/SDCARD/Saves/spruce \
-                -pyUiConfig /mnt/SDCARD/App/PyUI/py-ui-config.json \
-                -cfwConfig /mnt/SDCARD/Saves/spruce/spruce-config.json "$@" >> /mnt/SDCARD/App/PyUI/run.txt 2>&1
+            env "$@" >> /mnt/SDCARD/App/PyUI/run.txt 2>&1
             log_message "PyUI on $PLATFORM exited with status $?"
         fi
     ;;

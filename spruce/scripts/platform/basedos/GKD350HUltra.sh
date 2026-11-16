@@ -5,6 +5,8 @@
 # replace dArkMossCommon's systemd and nmcli ones. Bluetooth is not brought up on BasedOS yet.
 
 . "/mnt/SDCARD/spruce/scripts/platform/darkmoss/dArkMossCommon.sh"
+. "/mnt/SDCARD/spruce/scripts/platform/utils/baseos_session_shield.sh"
+. "/mnt/SDCARD/spruce/scripts/platform/utils/spruce_system_user.sh"
 
 device_init() {
     resolve_pad_node
@@ -18,6 +20,10 @@ device_init() {
     # dArkMoss writes ~/.asoundrc through bluetooth.sh boot; BasedOS has no Bluetooth yet,
     # so write it here (runtime.sh removed the old one before device_init).
     /mnt/SDCARD/spruce/scripts/asound-setup.sh "$HOME"
+    # As on the H700 BaseOS: the spruce login for dropbear and Samba, and keep BasedOS's
+    # respawned session from remounting the card while save_poweroff shuts down.
+    add_spruce_system_user
+    shield_baseos_session /sbin/frontend-session
 }
 
   ###################
@@ -71,12 +77,13 @@ device_manages_own_wifi() {
     return 0
 }
 
+# The radio stays BasedOS's; spruce's Wi-Fi switch takes the link up or down.
 device_wifi_power_on() {
-    :
+    ip link set wlan0 up 2>/dev/null
 }
 
 device_wifi_power_off() {
-    :
+    ip link set wlan0 down 2>/dev/null
 }
 
 device_start_dhcp_client() {
@@ -87,8 +94,11 @@ device_stop_dhcp_client() {
     :
 }
 
+# Saved to the card like on every other device (so it follows the card), but BasedOS still
+# associates from its own /data/wpa_supplicant.conf, so the new network isn't joined yet.
 device_wifi_connect() {
-    log_message "$PLATFORM: Wi-Fi networks are set in BasedOS (/data/wpa_supplicant.conf); not adding $1"
+    wpa_conf_save_network "$1" "$2"
+    log_message "$PLATFORM: saved $1 to the card; BasedOS joins networks from /data/wpa_supplicant.conf"
     return 1
 }
 
@@ -113,44 +123,19 @@ device_bluetooth_down() {
 # after resume. The RTC (hym8563, on always-on GPIO0) wakes the board from deep sleep.
 trigger_device_sleep() {
     sync
-    echo mem > /sys/power/state
+    if ! echo mem > /sys/power/state 2>/dev/null; then
+        log_message "$PLATFORM: the kernel refused to suspend"
+        return 1
+    fi
 }
 
-# sleep_functions.sh's, with the alarm rounded up to a whole minute. The hym8563's alarm has
-# minute resolution and fires at the start of the target minute, up to 59 s before
-# TARGET_EPOCH, and device_woke_via_timer allows only 10 s early: a timed wake was taken for a
-# manual one and the device stayed on (seen on the unit). Rounded up, it never fires early; the
-# cost is up to 59 s more sleep before the shutdown.
-set_wake_alarm() {
-    IDLE_TIMEOUT="$1"
-    WAKE_ALARM_PATH="$2"
-
-    if [ "$IDLE_TIMEOUT" -le 0 ]; then
-        log_message "set_wake_alarm: IDLE_TIMEOUT <= 0, not setting wakealarm"
-        return 0
-    fi
-    _now=$(device_get_hw_epoch)
-    _alarm="$IDLE_TIMEOUT"
-    [ -n "$_now" ] && _alarm=$(( IDLE_TIMEOUT + (60 - (_now + IDLE_TIMEOUT) % 60) % 60 ))
-
-    if [ -e "$WAKE_ALARM_PATH" ]; then
-        echo 0 >"$WAKE_ALARM_PATH" 2>/dev/null
-        if ! echo "+$_alarm" >"$WAKE_ALARM_PATH" 2>/dev/null; then
-            log_message "WARNING: Failed to write WAKE_ALARM_PATH"
-            return 1
-        fi
-        log_message "set_wake_alarm: Wakealarm set for +$_alarm seconds ($IDLE_TIMEOUT rounded up to the RTC's minute)"
-    else
-        log_message "WARNING: WAKE_ALARM_PATH missing, relying on external wake"
-    fi
-    return 0
-}
 
   ###################
 #####   POWER   #####
   ###################
 
-# BusyBox init: its poweroff and reboot run BasedOS's rcK, which unmounts the card.
+# BusyBox init: its poweroff and reboot run BasedOS's rcK. The card itself is unmounted by
+# save_poweroff's strict stage 2 first (see below), as on the H700 BaseOS.
 device_run_reboot_cmd() {
     sync
     reboot
@@ -163,6 +148,17 @@ run_poweroff_cmd() {
 
 device_prepare_for_poweroff() {
     :
+}
+
+# BasedOS's rcK runs before BusyBox init signals anything, so the frontend still holds the card
+# then: spruce unmounts it itself (stage 2) and, being strict, also keeps its own respawned
+# session from starting again. Same as the H700 BaseOS (AnbernicXXCommon.sh).
+device_system_handles_sdcard_unmount() {
+    return 1
+}
+
+device_needs_strict_unmount() {
+    return 0
 }
 
   ######################
