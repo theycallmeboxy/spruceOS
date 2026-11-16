@@ -15,6 +15,42 @@ device_init() {
         cp "$SYSTEM_JSON_DEFAULT" "$SYSTEM_JSON"
     fi
     set_backlight "$(get_backlight_level)"
+    # dArkMoss writes ~/.asoundrc through bluetooth.sh boot; BasedOS has no Bluetooth yet,
+    # so write it here (runtime.sh removed the old one before device_init).
+    /mnt/SDCARD/spruce/scripts/asound-setup.sh "$HOME"
+}
+
+  ###################
+#####   AUDIO   #####
+  ###################
+
+# dArkMossCommon's file with its softvol "Master" left out: the DAC's "Digital" control is the
+# volume here (VOLUME_CONTROL), so a software stage in front of it would only cost headroom.
+# spruce_speaker is the name asound-setup.sh routes to; dmix still lets sounds overlap.
+device_write_default_asound_rc() {
+    cat > "$ASOUND_CONF" <<ASOUND
+pcm.spruce_speaker {
+    type        plug
+    slave.pcm   "ddmix"
+}
+
+ctl.!default {
+    type        hw
+    card        0
+}
+
+pcm.ddmix {
+    ipc_key     1024
+    type        dmix
+    slave {
+        pcm         "hw:0,0"
+        period_time 0
+        period_size 1024
+        buffer_size 4096
+        rate        44100
+    }
+}
+ASOUND
 }
 
 # spruce's own dropbear owns port 22, as on the H700 BaseOS: with SSH on it stops BasedOS's
