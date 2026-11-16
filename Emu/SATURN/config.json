@@ -117,7 +117,8 @@
         "yabasanshiro-standalone-hle"
       ],
       "devices": [
-        "OAKMOSS_A133P"
+        "OAKMOSS_A133P",
+        "BASEDOS"
       ],
       "selected": "yabasanshiro_generic_libretro",
       "overrides": {}

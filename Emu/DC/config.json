@@ -68,7 +68,8 @@
         "TRIMUI_A133P",
         "TRIMUI_SMART_PRO_S",
         "ANBERNIC_RGXX",
-        "OAKMOSS_A133P"
+        "OAKMOSS_A133P",
+        "BASEDOS"
       ],
       "options": [
         "Flycast-libretro",
@@ -107,7 +108,8 @@
     "GKD_PIXEL2",
     "ANBERNIC_RGXX",
     "DARKMOSS",
-    "OAKMOSS_A133P"
+    "OAKMOSS_A133P",
+    "BASEDOS"
   ],
   "alternativeFolderNames": [
     "DREAMCAST",
