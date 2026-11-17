@@ -129,6 +129,11 @@ trigger_device_sleep() {
     fi
 }
 
+# Idle shutdown watches the pad's js node (js0 under event3), as on the H700 BaseOS.
+set_event_arg_for_idlemon() {
+    set_idlemon_to_pad
+}
+
 
   ###################
 #####   POWER   #####
