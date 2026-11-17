@@ -180,7 +180,7 @@ cores_online() {
 
     case "$core_string" in
         (*[4-7]*) ;;
-        (*) [ "$2" = "--no-offline" ] || gkd_a72_to_lowest_clock ;;
+        (*) [ "$2" = "--no-offline" ] || gkd350hultra_a72_to_lowest_clock ;;
     esac
 
     for cpu_path in /sys/devices/system/cpu/cpu[0-7]*; do
@@ -208,7 +208,7 @@ cores_online() {
 
 # The A72 policy to its lowest step while any A72 is still online (see cores_online). The mode
 # that brings them back writes its own governor and range.
-gkd_a72_to_lowest_clock() {
+gkd350hultra_a72_to_lowest_clock() {
     grep -q 1 /sys/devices/system/cpu/cpu[4-7]/online 2>/dev/null || return 0
     _lo="$(cat "$CPU_4_DIR/cpuinfo_min_freq" 2>/dev/null)"
     [ -n "$_lo" ] || return 0
@@ -219,7 +219,7 @@ gkd_a72_to_lowest_clock() {
 }
 
 # cpu_control_functions.sh's set_performance with two changes: the A72s only
-# (GKD_PERFORMANCE_CORES_ONLINE), not DEVICE_MAX_CORES_ONLINE, which is Overclock's all eight; and
+# (GKD350HULTRA_PERFORMANCE_CORES_ONLINE), not DEVICE_MAX_CORES_ONLINE, which is Overclock's all eight; and
 # the A53 policy on ondemand over its full range rather than pinned, for a launch's
 # "--no-offline", which brings the A72s up without parking the A53s. Otherwise the A53s are parked
 # and those writes fail harmlessly. The A72s come up first: cores_online walks cpu0-7 in order,
@@ -229,8 +229,8 @@ set_performance() {
     log_message "set_performance called"
     if ! flag_check "setting_cpu"; then
         flag_add "setting_cpu" --tmp
-        cores_online "$GKD_PERFORMANCE_CORES_ONLINE" --no-offline
-        cores_online "$GKD_PERFORMANCE_CORES_ONLINE" "$1"
+        cores_online "$GKD350HULTRA_PERFORMANCE_CORES_ONLINE" --no-offline
+        cores_online "$GKD350HULTRA_PERFORMANCE_CORES_ONLINE" "$1"
 
         unlock_governor 2>/dev/null
 
@@ -248,7 +248,7 @@ set_performance() {
         set_dram_governor "$DRAM_PERFORMANCE_GOVERNOR"
 
         lock_governor 2>/dev/null
-        log_message "CPU Mode now locked to PERFORMANCE: $GKD_PERFORMANCE_CORES_ONLINE @ $CPU_PERF_MAX_FREQ"
+        log_message "CPU Mode now locked to PERFORMANCE: $GKD350HULTRA_PERFORMANCE_CORES_ONLINE @ $CPU_PERF_MAX_FREQ"
         flag_remove "setting_cpu"
     fi
 }
