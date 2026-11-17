@@ -68,7 +68,8 @@
       "display": "Emulator",
       "devices": [
         "DARKMOSS",
-        "ANBERNIC_RGXX"
+        "ANBERNIC_RGXX",
+        "BASEDOS"
       ],
       "options": [
         "DSperate",
@@ -89,7 +90,8 @@
         "GKD_PIXEL2",
         "DARKMOSS",
         "MIYOO_A30",
-        "OAKMOSS_A133P"
+        "OAKMOSS_A133P",
+        "BASEDOS"
       ],
       "options": [
         "None",
