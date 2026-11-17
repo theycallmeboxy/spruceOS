@@ -161,6 +161,98 @@ device_needs_strict_unmount() {
     return 0
 }
 
+  #################
+#####   CPU   #####
+  #################
+
+# cpu_control_functions.sh's cores_online, word for word, plus one step: the A72s go to their
+# lowest clock before they are parked. The clusters share the CCI (rockchip,opp-shared-cci in the
+# cpu OPP tables), and the driver holds the A53s' minimum at the CCI level the A72s last asked
+# for: parked from 2016 MHz they left the A53s stuck at 1800 (Smart's top) until a reboot; parked
+# from 408 MHz the A53s scale from 408 again (both on the unit, 2026-11-16).
+cores_online() {
+    [ -z "$1" ] && return  # skip empty call
+    core_string="${1:-0123}"
+
+    # TODO why silent?
+    # Silently fall back on invalid input
+    case "$core_string" in (*[!0-7]*) core_string=0123 ;; esac
+
+    case "$core_string" in
+        (*[4-7]*) ;;
+        (*) [ "$2" = "--no-offline" ] || gkd_a72_to_lowest_clock ;;
+    esac
+
+    for cpu_path in /sys/devices/system/cpu/cpu[0-7]*; do
+        [ -e "$cpu_path/online" ] || continue
+
+        cpu="${cpu_path##*cpu}"
+        case "$core_string" in
+            (*"$cpu"*) val=1 ;;
+            (*)        val=0 ;;
+        esac
+
+        # Offlining is a slow hotplug; a caller may leave it to the next call.
+        [ "$val" = 0 ] && [ "$2" = "--no-offline" ] && continue
+
+        # Re-locking a core already in that state only costs forks.
+        read -r cur < "$cpu_path/online" 2>/dev/null && [ "$cur" = "$val" ] && continue
+
+        # lock requested cpus online and all others offline
+        chmod a+w "$cpu_path/online" 2>/dev/null
+        echo "$val" >"$cpu_path/online" 2>/dev/null
+        chmod a-w "$cpu_path/online" 2>/dev/null
+    done
+    log_message "Setting cores online: ${core_string}"
+}
+
+# The A72 policy to its lowest step while any A72 is still online (see cores_online). The mode
+# that brings them back writes its own governor and range.
+gkd_a72_to_lowest_clock() {
+    grep -q 1 /sys/devices/system/cpu/cpu[4-7]/online 2>/dev/null || return 0
+    _lo="$(cat "$CPU_4_DIR/cpuinfo_min_freq" 2>/dev/null)"
+    [ -n "$_lo" ] || return 0
+    for _f in scaling_min_freq scaling_max_freq; do
+        chmod a+w "$CPU_4_DIR/$_f" 2>/dev/null
+        echo "$_lo" > "$CPU_4_DIR/$_f" 2>/dev/null
+    done
+}
+
+# cpu_control_functions.sh's set_performance with two changes: the A72s plus cpu0
+# (GKD_PERFORMANCE_CORES_ONLINE), not DEVICE_MAX_CORES_ONLINE, which is Overclock's all eight; and
+# the A53 policy on ondemand over its full range, since only cpu0 is left on it for interrupts and
+# housekeeping (see the cfg for why cpu0 stays). The A72s come up first: cores_online walks cpu0-7
+# in order, and from Smart (A53s only) it would park the A53s before any A72 was up.
+# set_overclock does the same. A launch's "--no-offline" brings the A72s up without parking the
+# A53s; they then run on that ondemand range too.
+set_performance() {
+    log_message "set_performance called"
+    if ! flag_check "setting_cpu"; then
+        flag_add "setting_cpu" --tmp
+        cores_online "$GKD_PERFORMANCE_CORES_ONLINE" --no-offline
+        cores_online "$GKD_PERFORMANCE_CORES_ONLINE" "$1"
+
+        unlock_governor 2>/dev/null
+
+        echo "ondemand" > "$CPU_0_DIR/scaling_governor"
+        echo "$CPU_SMART_MIN_FREQ" > "$CPU_0_DIR/scaling_min_freq"
+        echo "$CPU_PERF_MAX_FREQ" > "$CPU_0_DIR/scaling_max_freq"
+        echo "performance" > "$CPU_4_DIR/scaling_governor"
+        echo "$CPU_PERF_MAX_FREQ" > "$CPU_4_DIR/scaling_min_freq"
+        echo "$CPU_PERF_MAX_FREQ" > "$CPU_4_DIR/scaling_max_freq"
+
+        if [ -d "$GPU_GOVENOR_DIR" ]; then
+            echo "$GPU_PERFORMANCE_MAX_FREQ" > "$GPU_GOVENOR_DIR/max_freq"
+            echo "$GPU_PERFORMANCE_GOVERNOR" > "$GPU_GOVENOR_DIR/governor"
+        fi
+        set_dram_governor "$DRAM_PERFORMANCE_GOVERNOR"
+
+        lock_governor 2>/dev/null
+        log_message "CPU Mode now locked to PERFORMANCE: $GKD_PERFORMANCE_CORES_ONLINE @ $CPU_PERF_MAX_FREQ"
+        flag_remove "setting_cpu"
+    fi
+}
+
 # Same values as retroarch-GKD350HUltra.cfg.bak ships (linuxraw numbering, see the gkd_atom_joypad
 # autoconfig): hotkey Select 8, fast forward R2 7, slow motion L2 6, state slot -/+ on Left/Right
 # 14/15. dArkMossCommon's set puts fast forward on 10, which is the Menu button here.
