@@ -34,6 +34,7 @@ set_ui_scale() {
 		"Flip") SCALING=70 ;;
 		"Brick"|"BrickOakMOSS") SCALING=120 ;;
 		"BrickPro") SCALING=140 ;;
+		"GKD350HUltra") SCALING=240 ;;
 		*) SCALING=100 ;;
 	esac
 
