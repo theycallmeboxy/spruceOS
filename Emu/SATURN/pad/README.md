@@ -1,6 +1,6 @@
 # Saturn standalone pad seeds
 
-**UNVERIFIED.** Every file here (but the RG351P tables, below) was generated from the boards' platform cfgs without a check on a device. The user
+**UNVERIFIED** unless the table below says otherwise. Every file here (but the RG351P tables, below) was generated from the boards' platform cfgs without a check on a device. The user
 asked for this on 2026-10-16: "ship an auto-generated control map without verification for test purposes to kick off
 the control audit in a later phase". Each keymap entry carries `"spruce_generated": "unverified-2026-10-16"`. Drop
 the tag from a table once a device run has confirmed it. The RG351P tables (`es-`/`keymap-RG351P[-R3]`) were written
@@ -37,6 +37,7 @@ The libretro core's Saturn layout:
 |---|---|---|
 | Zero28, Zero40, XU20 (+ `-riders`) | magicx-input | GUID measured from the standalone's log (2026-10-15) |
 | Miniloong | retrogame_joypad | measured (2026-10-15) |
+| GKD350HUltra | gkd_atom_joypad | measured, and play-tested on the device (2026-11-17, no `unverified` tag) |
 | RGB30, RGB30-R3, RGB20SX | retrogame_joypad | computed: the Miniloong's pad ids |
 | A10Mini | GO-Super Gamepad | computed |
 | RG351P, RG351P-R3 | OpenSimHardware OSH PB Controller | computed (name CRC 0x5827), matches ROCKNIX es_input.cfg; hand-written 2026-11-19 (`unverified-2026-11-19`) |
