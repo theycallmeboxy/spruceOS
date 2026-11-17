@@ -161,6 +161,31 @@ device_needs_strict_unmount() {
     return 0
 }
 
+# Same values as retroarch-GKD350HUltra.cfg.bak ships (linuxraw numbering, see the gkd_atom_joypad
+# autoconfig): hotkey Select 8, fast forward R2 7, slow motion L2 6, state slot -/+ on Left/Right
+# 14/15. dArkMossCommon's set puts fast forward on 10, which is the Menu button here.
+set_default_ra_hotkeys() {
+    RA_FILE="$(platform_path "/mnt/SDCARD/Saves/ra-configs/retroarch-%s.cfg")"
+
+    log_message "Resetting RetroArch hotkeys to Spruce defaults."
+
+    update_ra_config_file_with_new_setting "$RA_FILE" \
+        "input_enable_hotkey_btn = \"8\"" \
+        "input_exit_emulator_btn = \"0\"" \
+        "input_fps_toggle_btn = \"2\"" \
+        "input_load_state_btn = \"4\"" \
+        "input_save_state_btn = \"5\"" \
+        "input_menu_toggle = \"f1\"" \
+        "input_menu_toggle_btn = \"3\"" \
+        "input_quit_gamepad_combo = \"0\"" \
+        "input_toggle_fast_forward_btn = \"7\"" \
+        "input_screenshot_btn = \"1\"" \
+        "input_shader_toggle_btn = \"nul\"" \
+        "input_state_slot_decrease_btn = \"14\"" \
+        "input_state_slot_increase_btn = \"15\"" \
+        "input_toggle_slowmotion_btn = \"6\""
+}
+
   ######################
 #####   FIRMWARE   #####
   ######################
