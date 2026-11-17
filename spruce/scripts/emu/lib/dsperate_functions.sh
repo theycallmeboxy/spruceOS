@@ -230,13 +230,6 @@ run_dsperate() {
 		./dsperate.a30 "$@" --config "/mnt/SDCARD/Saves/dsperate/a30.ini" > "$(emu_log_file)" 2>&1
 
 	else
-		# A panel mounted turned (DISPLAY_ROTATION in the platform cfg): DSperate's KMS
-		# scanout skips the rotated SDL, so it is told the turn itself. 0 everywhere else.
-		case "$DISPLAY_ROTATION" in
-			""|"0") ;;
-			*) export DS_ROTATE="$DISPLAY_ROTATION" ;;
-		esac
-
 		case "$DEVICE_NUM_ANALOG_STICKS" in
 			"0")
 				if [ "$PLATFORM" = "V10" ]; then
