@@ -374,7 +374,12 @@ case "$PLATFORM" in
         # No udev on BasedOS (devtmpfs only): SDL's udev joystick probe must not wait for it.
         export SDL_JOYSTICK_DISABLE_UDEV=1
 
-        set -- LD_PRELOAD=/usr/lib/libwayland-client.so.0 /mnt/SDCARD/spruce/flip/bin/MainUI             /mnt/SDCARD/App/PyUI/main-ui/mainui.py             -device ENV_VAR             -logDir /mnt/SDCARD/Saves/spruce             -pyUiConfig /mnt/SDCARD/App/PyUI/py-ui-config.json             -cfwConfig /mnt/SDCARD/Saves/spruce/spruce-config.json "$@"
+        set -- LD_PRELOAD=/usr/lib/libwayland-client.so.0 /mnt/SDCARD/spruce/flip/bin/MainUI \
+            /mnt/SDCARD/App/PyUI/main-ui/mainui.py \
+            -device ENV_VAR \
+            -logDir /mnt/SDCARD/Saves/spruce \
+            -pyUiConfig /mnt/SDCARD/App/PyUI/py-ui-config.json \
+            -cfwConfig /mnt/SDCARD/Saves/spruce/spruce-config.json "$@"
 
         log_message "Starting PyUI on $PLATFORM"
         if [ $button_listener_mode -eq 1 ]; then
