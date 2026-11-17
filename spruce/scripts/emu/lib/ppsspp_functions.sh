@@ -102,6 +102,11 @@ run_ppsspp() {
 		"RG351P")
 			export_sdl_gamecontroller_map positional
 			;;
+		# BasedOS has no udev, so SDL finds no mapping for the pad on its own;
+		# the same positional map and controls layout as the Anbernics.
+		"GKD350HUltra")
+			export_sdl_gamecontroller_map positional
+			;;
 	esac
 
 	# accommodate both relative and absolute paths for PPSSPP bin location
