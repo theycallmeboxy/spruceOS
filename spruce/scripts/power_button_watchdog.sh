@@ -50,7 +50,13 @@ power_key_up () {
             power_hold_pid=""
         fi
 
-        if [ "$was_cancelled" = false ]; then
+        # No sleep until the boot is done: this watchdog starts with device_init, seconds
+        # before the menu, and a tap then suspended the device halfway through the boot.
+        # The marker is after_first_frame.sh's (the menu's first frame, or runtime.sh on a
+        # boot that starts something else first). Holding for power off still works.
+        if [ "$was_cancelled" = false ] && [ ! -d /tmp/spruce_boot_jobs_started ]; then
+            log_message "power_button_watchdog.sh: boot still running; tap ignored"
+        elif [ "$was_cancelled" = false ]; then
             /mnt/SDCARD/spruce/scripts/sleep_helper.sh
         fi
     else
