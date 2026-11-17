@@ -218,13 +218,13 @@ gkd_a72_to_lowest_clock() {
     done
 }
 
-# cpu_control_functions.sh's set_performance with two changes: the A72s plus cpu0
+# cpu_control_functions.sh's set_performance with two changes: the A72s only
 # (GKD_PERFORMANCE_CORES_ONLINE), not DEVICE_MAX_CORES_ONLINE, which is Overclock's all eight; and
-# the A53 policy on ondemand over its full range, since only cpu0 is left on it for interrupts and
-# housekeeping (see the cfg for why cpu0 stays). The A72s come up first: cores_online walks cpu0-7
-# in order, and from Smart (A53s only) it would park the A53s before any A72 was up.
-# set_overclock does the same. A launch's "--no-offline" brings the A72s up without parking the
-# A53s; they then run on that ondemand range too.
+# the A53 policy on ondemand over its full range rather than pinned, for a launch's
+# "--no-offline", which brings the A72s up without parking the A53s. Otherwise the A53s are parked
+# and those writes fail harmlessly. The A72s come up first: cores_online walks cpu0-7 in order,
+# and from Smart (A53s only) it would reach cpu3 as the last core online, which the kernel won't
+# park. set_overclock does the same.
 set_performance() {
     log_message "set_performance called"
     if ! flag_check "setting_cpu"; then
@@ -234,9 +234,9 @@ set_performance() {
 
         unlock_governor 2>/dev/null
 
-        echo "ondemand" > "$CPU_0_DIR/scaling_governor"
-        echo "$CPU_SMART_MIN_FREQ" > "$CPU_0_DIR/scaling_min_freq"
-        echo "$CPU_PERF_MAX_FREQ" > "$CPU_0_DIR/scaling_max_freq"
+        echo "ondemand" > "$CPU_0_DIR/scaling_governor" 2>/dev/null
+        echo "$CPU_SMART_MIN_FREQ" > "$CPU_0_DIR/scaling_min_freq" 2>/dev/null
+        echo "$CPU_PERF_MAX_FREQ" > "$CPU_0_DIR/scaling_max_freq" 2>/dev/null
         echo "performance" > "$CPU_4_DIR/scaling_governor"
         echo "$CPU_PERF_MAX_FREQ" > "$CPU_4_DIR/scaling_min_freq"
         echo "$CPU_PERF_MAX_FREQ" > "$CPU_4_DIR/scaling_max_freq"
