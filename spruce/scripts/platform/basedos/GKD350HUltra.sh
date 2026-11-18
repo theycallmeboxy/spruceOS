@@ -119,9 +119,15 @@ device_bluetooth_down() {
 #####   SLEEP   #####
   ###################
 
-# The kernel offers deep sleep (mem_sleep = s2idle [deep]); no systemd to ask. The write returns
-# after resume. The RTC (hym8563, on always-on GPIO0) wakes the board from deep sleep.
+# The kernel offers deep sleep (mem_sleep = s2idle [deep]); no systemd to ask. BasedOS's
+# basedos-suspend does it and then its own wake fixes (the DAC's volume, which the stock kernel
+# loses), as dArkMoss's system-sleep hook does behind systemd; it returns after resume. A BasedOS
+# without it gets the plain write. The RTC (hym8563, on always-on GPIO0) wakes the board.
 trigger_device_sleep() {
+    if [ -x /usr/sbin/basedos-suspend ]; then
+        /usr/sbin/basedos-suspend || { log_message "$PLATFORM: the kernel refused to suspend"; return 1; }
+        return 0
+    fi
     sync
     if ! echo mem > /sys/power/state 2>/dev/null; then
         log_message "$PLATFORM: the kernel refused to suspend"
