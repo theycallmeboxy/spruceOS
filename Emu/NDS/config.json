@@ -68,12 +68,24 @@
       "display": "Emulator",
       "devices": [
         "DARKMOSS",
-        "ANBERNIC_RGXX",
-        "BASEDOS"
+        "ANBERNIC_RGXX"
       ],
       "options": [
         "DSperate",
         "DSperate-Tate",
+        "DraStic-original",
+        "pokedaisy_ds"
+      ],
+      "selected": "DSperate",
+      "overrides": {}
+    },
+    "Emulator_BASEDOS": {
+      "display": "Emulator",
+      "devices": [
+        "BASEDOS"
+      ],
+      "options": [
+        "DSperate",
         "DraStic-original",
         "pokedaisy_ds"
       ],

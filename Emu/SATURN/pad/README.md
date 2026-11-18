@@ -50,3 +50,7 @@ and XU Mini M are left out on purpose (user, 2026-10-16: "Leave out everywhere",
 
 `docs/research/saturn-controls-20261015/scheme/gen_saturn_pads.py <spruceOS tree>` in the CFW/Spruce wrapper writes
 these files from the cfgs (`--check` compares), all but the hand-written RG351P tables. `scheme/test_seed.sh` tests the launch step under busybox.
+
+The GKD350HUltra table is not generated: it was written by hand from the measured pad and checked on the
+device, and the generator doesn't know BasedOS's platform folder. Keep `keymap-GKD350HUltra.json` and
+`es-GKD350HUltra.xml` when regenerating (`--check` may flag them).
