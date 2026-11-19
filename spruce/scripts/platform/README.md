@@ -22,6 +22,18 @@ A board on a new chip adds `oakmoss_<chip>.sh` and, where no other base has one 
 boards report `OAKMOSS_<CHIP>` (`OAKMOSS_A133P`) after their own name in `device_names`, for the Emu and App
 config lists, since builds differ by chip.
 
+## BasedOS: base and board
+
+BasedOS (the GKD 350H Ultra) is a BaseOS-style base on the eMMC with BusyBox init and no systemd, NetworkManager
+or udev. Its boards stack two layers on the hardware they share with another base:
+
+- the board, `basedos/<PLATFORM>.{cfg,sh}`: its hardware. The 350H Ultra sources the dArkMoss RK3566 files first
+  (`darkmoss/dArkMossCommon.{cfg,sh}`: the same Mali GPU and much of the same board), then the base;
+- the base, `basedos/BasedOSCommon.{cfg,sh}`: what every BasedOS board shares, which replaces what the hardware
+  layer assumes of its own base (SSH, Wi-Fi, sleep, power, firmware, the library path, no udev).
+
+Its boards report `BASEDOS` after their own name in `device_names`.
+
 ## Variants
 
 A variant is a platform that is another one with a few differences: the same board on a different base, say.
