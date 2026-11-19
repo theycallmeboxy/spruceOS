@@ -131,8 +131,6 @@ manage_ds_bootmenu_stubs() {
 }
 
 # Read by PortMaster's device_info.txt. In /tmp because the card moves between devices.
-# PORTMASTER_DISPLAY_ORIENTATION (platform cfg, optional) overrides PortMaster's own guess, which
-# turns its GUI and ports for a panel it sees as rotated; unset, PortMaster decides as before.
 write_device_info() {
     cat > /tmp/spruce_device_info.env <<EOF
 CFW_NAME="spruce"
@@ -141,9 +139,6 @@ DEVICE_NAME="$SPRUCE_DEVICE_NAME"
 SPRUCE_PLATFORM="$PLATFORM"
 ANALOG_STICKS="$DEVICE_NUM_ANALOG_STICKS"
 EOF
-    [ -n "$PORTMASTER_DISPLAY_ORIENTATION" ] &&
-        echo "DISPLAY_ORIENTATION=\"$PORTMASTER_DISPLAY_ORIENTATION\"" >> /tmp/spruce_device_info.env
-    return 0
 }
 
 hide_fw_app() {

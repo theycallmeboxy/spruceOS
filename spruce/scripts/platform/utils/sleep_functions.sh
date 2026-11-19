@@ -42,26 +42,12 @@ set_wake_alarm() {
         # Clear previous alarm first (important on some BSP kernels)
         echo 0 >"$WAKE_ALARM_PATH" 2>/dev/null
 
-        # WAKE_ALARM_RESOLUTION (platform cfg, seconds): an RTC whose alarm only has that
-        # resolution fires at the start of the slot, possibly before TARGET_EPOCH, and
-        # device_woke_via_timer only allows DRIFT_TOLERANCE early. Round the alarm up to the slot.
-        _alarm="$IDLE_TIMEOUT"
-        _res="${WAKE_ALARM_RESOLUTION:-1}"
-        if [ "$_res" -gt 1 ]; then
-            _now="$(device_get_hw_epoch)"
-            [ -n "$_now" ] && _alarm=$(( IDLE_TIMEOUT + (_res - (_now + IDLE_TIMEOUT) % _res) % _res ))
-        fi
-
-        if ! echo "+$_alarm" >"$WAKE_ALARM_PATH" 2>/dev/null; then
+        if ! echo "+$IDLE_TIMEOUT" >"$WAKE_ALARM_PATH" 2>/dev/null; then
             log_message "WARNING: Failed to write WAKE_ALARM_PATH"
             return 1
         fi
 
-        if [ "$_alarm" = "$IDLE_TIMEOUT" ]; then
-            log_message "set_wake_alarm: Wakealarm set for +$IDLE_TIMEOUT seconds"
-        else
-            log_message "set_wake_alarm: Wakealarm set for +$_alarm seconds ($IDLE_TIMEOUT rounded up to the RTC's ${_res} s alarm resolution)"
-        fi
+        log_message "set_wake_alarm: Wakealarm set for +$IDLE_TIMEOUT seconds"
     else
         log_message "WARNING: WAKE_ALARM_PATH missing, relying on external wake"
     fi
