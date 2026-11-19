@@ -29,7 +29,7 @@ else
     # with E-Reader under spruce/h700/lib64, scoped here so they don't shadow
     # firmware libraries on Brick, Flip or SmartPro.
     case "$PLATFORM_FAMILY" in
-        "h700")
+        "h700"|"basedos")
             export LD_LIBRARY_PATH="/mnt/SDCARD/spruce/h700/lib64:$LD_LIBRARY_PATH"
             # gptokeyb needs a GameController mapping to translate pad input.
             # Use positional mapping: gallery.gptk uses SDL names ("a" = South),
