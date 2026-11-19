@@ -194,6 +194,21 @@ device_get_fw_version() {
 # spruce's own RetroArch with this platform's config, started as spruce starts it (run_retroarch).
 # Every port is waited for, as run_port waits for the others, so the menu doesn't come back over
 # the game. standard_launch.sh calls this for PLATFORM_FAMILY basedos.
+#
+# Ports on PortMaster's Weston pack (westonwrap.sh) get two things more:
+# - udev's daemon while they run (BasedOS's basedos-udev): Weston won't start without input
+#   devices, and libinput finds them only in udev's database. BasedOS doesn't otherwise run it, so
+#   it is stopped again after the port and nothing else sees udev.
+# - CRUSTY_LIBSDL, BasedOS's SDL2 for the pack's Crusty layer to draw with. westonwrap.sh would take
+#   the first libSDL2 on the library path, PortMaster's own (its lib folder comes first), and
+#   Crusty can't use that build: it tells its own SDL's calls from the program's by the first
+#   memory range of the library, and that SDL's first range isn't its code, so Crusty fakes SDL's
+#   display device for it too and recurses until it runs out of files. BasedOS's SDL2 also turns
+#   the picture for this panel.
+is_weston_port() {
+    grep -q "westonwrap\.sh" "$ROM_FILE"
+}
+
 run_basedos_port() {
     log_message "Running port on $PLATFORM w/ ($PLATFORM_ARCHITECTURE)"
 
@@ -243,12 +258,24 @@ run_basedos_port() {
         log_message "PORTS_DIR: $PORTS_DIR, HOME=$HOME, LD_LIBRARY_PATH=$LD_LIBRARY_PATH, PATH=$PATH"
     fi
 
+    weston_udev=""
+    if is_weston_port; then
+        export CRUSTY_LIBSDL=/usr/lib/libSDL2-2.0.so.0
+        if command -v basedos-udev >/dev/null 2>&1 && basedos-udev start; then
+            weston_udev=1
+            log_message "Weston port: CRUSTY_LIBSDL=$CRUSTY_LIBSDL, udevd started"
+        else
+            log_message "Weston port: CRUSTY_LIBSDL=$CRUSTY_LIBSDL, no udevd (BasedOS older than basedos-udev?)"
+        fi
+    fi
+
     setsid "$launch_script" > /mnt/SDCARD/Saves/spruce/port.log 2>&1 &
     SID=$!
     echo "$SID" > /tmp/last_port_sid
     wait "$SID"
     rm -f /tmp/last_port_sid
     [ -n "$tmp_launch_script" ] && rm -f "$tmp_launch_script"
+    [ -n "$weston_udev" ] && basedos-udev stop
 
     device_cleanup_after_ports_run
 }
