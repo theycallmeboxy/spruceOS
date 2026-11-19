@@ -78,7 +78,7 @@ sleep 0.6
 # so find it by the name gptokeyb gives it. Also waits for the device rather than
 # trusting the sleep above, since reader must not start before it exists.
 case "$PLATFORM" in
-	"Anbernic"*)
+	"Anbernic"*|"GKD350HUltra")
 		i=0
 		while [ "$i" -lt 20 ]; do
 			for d in /sys/class/input/event*; do
@@ -92,6 +92,10 @@ case "$PLATFORM" in
 			i=$((i + 1))
 			sleep 0.1
 		done
+		# BasedOS's own SDL2 (2.32, no udev either) reads each entry as class:path, and
+		# without the class it opens the wrong path; 2 is a keyboard (SDL_UDEV_DEVICE_KEYBOARD).
+		[ "$PLATFORM_FAMILY" = "basedos" ] && [ -n "$SDL_EVDEV_DEVICES" ] &&
+			export SDL_EVDEV_DEVICES="2:$SDL_EVDEV_DEVICES"
 		;;
 esac
 
