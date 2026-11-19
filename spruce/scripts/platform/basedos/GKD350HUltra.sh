@@ -102,6 +102,15 @@ device_wifi_connect() {
     return 1
 }
 
+# Forget all: clear the card's saved networks only. The common wpa_forget_all_networks kills
+# wpa_supplicant, which here is BasedOS's (started once at boot, nothing restarts it), so Wi-Fi
+# stayed down with no scans until a reboot. BasedOS's own networks (/data/wpa_supplicant.conf)
+# stay: spruce can't join one from its menu here yet, so forgetting them would leave no way back.
+device_wifi_forget_all() {
+    printf '%s\n' "ctrl_interface=DIR=/var/run/wpa_supplicant" "update_config=1" > "$WPA_SUPPLICANT_FILE"
+    log_message "$PLATFORM: cleared the card's saved networks; BasedOS keeps its own"
+}
+
   #######################
 #####   BLUETOOTH   #####
   #######################
