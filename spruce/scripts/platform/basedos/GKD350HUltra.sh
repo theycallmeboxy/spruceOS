@@ -70,15 +70,23 @@ get_ssh_service_name() {
 #####   WIFI   #####
   ##################
 
-# BasedOS associates and runs DHCP itself before spruce starts (wpa_supplicant on wlan0 with
-# /data/wpa_supplicant.conf, udhcpc). A second supplicant on wlan0 would fight it, so spruce
-# leaves Wi-Fi to the base for now.
+# spruce owns Wi-Fi here, as on its wpa_supplicant devices: its own supplicant on the card's
+# saved networks ($WPA_SUPPLICANT_FILE) and udhcpc (BasedOS's default.script sets the address,
+# route and DNS). BasedOS only loads bcmdhd at boot; its own supplicant runs only in maintenance
+# mode or after a failing frontend. These put back spruce's defaults over dArkMossCommon's nmcli
+# ones (dArkMoss has NetworkManager; BasedOS doesn't).
 device_manages_own_wifi() {
-    return 0
+    return 1
 }
 
-# The radio stays BasedOS's; spruce's Wi-Fi switch takes the link up or down.
+# The driver stays loaded (BasedOS loads it at boot; this covers a boot where that failed or
+# hasn't finished): on and off take the link up and down.
 device_wifi_power_on() {
+    if [ ! -e /sys/class/net/wlan0 ]; then
+        modprobe bcmdhd 2>/dev/null
+        _w=0
+        while [ ! -e /sys/class/net/wlan0 ] && [ "$_w" -lt 50 ]; do sleep 0.1; _w=$((_w + 1)); done
+    fi
     ip link set wlan0 up 2>/dev/null
 }
 
@@ -87,28 +95,23 @@ device_wifi_power_off() {
 }
 
 device_start_dhcp_client() {
-    :
+    pgrep -f "udhcpc.*wlan0" >/dev/null || udhcpc -i wlan0 -b -t 5 -T 3
 }
 
 device_stop_dhcp_client() {
-    :
+    killall -9 udhcpc 2>/dev/null
 }
 
-# Saved to the card like on every other device (so it follows the card), but BasedOS still
-# associates from its own /data/wpa_supplicant.conf, so the new network isn't joined yet.
 device_wifi_connect() {
-    wpa_conf_save_network "$1" "$2"
-    log_message "$PLATFORM: saved $1 to the card; BasedOS joins networks from /data/wpa_supplicant.conf"
-    return 1
+    wpa_add_network "$1" "$2"
 }
 
-# Forget all: clear the card's saved networks only. The common wpa_forget_all_networks kills
-# wpa_supplicant, which here is BasedOS's (started once at boot, nothing restarts it), so Wi-Fi
-# stayed down with no scans until a reboot. BasedOS's own networks (/data/wpa_supplicant.conf)
-# stay: spruce can't join one from its menu here yet, so forgetting them would leave no way back.
 device_wifi_forget_all() {
-    printf '%s\n' "ctrl_interface=DIR=/var/run/wpa_supplicant" "update_config=1" > "$WPA_SUPPLICANT_FILE"
-    log_message "$PLATFORM: cleared the card's saved networks; BasedOS keeps its own"
+    wpa_forget_all_networks
+}
+
+device_extra_wifi_setup() {
+    :
 }
 
   #######################
