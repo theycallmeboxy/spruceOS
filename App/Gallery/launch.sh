@@ -62,7 +62,7 @@ else
     # gptokeyb on dll-mali, which has NextUI's H700 joystick classification
     # patch. Scope the alternate SDL2 to gallery64 so it can't affect gptokeyb.
     case "$PLATFORM_FAMILY" in
-        "h700")
+        "h700"|"basedos")
             i=0
             while [ "$i" -lt 20 ]; do
                 for d in /sys/class/input/event*; do
@@ -76,8 +76,17 @@ else
                 i=$((i + 1))
                 sleep 0.1
             done
-
+            ;;
+    esac
+    case "$PLATFORM_FAMILY" in
+        "h700")
             LD_LIBRARY_PATH=/mnt/SDCARD/spruce/h700/lib64/sdl2:$LD_LIBRARY_PATH ./gallery64 > "$LOG_PATH" 2>&1
+            ;;
+        "basedos")
+            # BasedOS's own SDL2 (2.32, no udev either) reads each entry as class:path, and
+            # without the class it opens the wrong path; 2 is a keyboard (SDL_UDEV_DEVICE_KEYBOARD).
+            [ -n "$SDL_EVDEV_DEVICES" ] && export SDL_EVDEV_DEVICES="2:$SDL_EVDEV_DEVICES"
+            ./gallery64 > "$LOG_PATH" 2>&1
             ;;
         *)
             ./gallery64 > "$LOG_PATH" 2>&1
