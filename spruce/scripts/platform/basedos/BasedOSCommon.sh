@@ -195,7 +195,7 @@ device_get_fw_version() {
 # Every port is waited for, as run_port waits for the others, so the menu doesn't come back over
 # the game. standard_launch.sh calls this for PLATFORM_FAMILY basedos.
 #
-# Ports on PortMaster's Weston pack (westonwrap.sh) get two things more:
+# Ports on PortMaster's Weston pack (westonwrap.sh) get three things more:
 # - udev's daemon while they run (BasedOS's basedos-udev): Weston won't start without input
 #   devices, and libinput finds them only in udev's database. BasedOS doesn't otherwise run it, so
 #   it is stopped again after the port and nothing else sees udev.
@@ -205,8 +205,34 @@ device_get_fw_version() {
 #   memory range of the library, and that SDL's first range isn't its code, so Crusty fakes SDL's
 #   display device for it too and recurses until it runs out of files. BasedOS's SDL2 also turns
 #   the picture for this panel.
+# - after the port, what's left of it ended (end_weston_port_leftovers). Quitting (gptokeyb's
+#   Select+Start) sends SIGTERM to every process whose command line names the game, westonwrap.sh
+#   among them, so the port script goes on to clean up and unmount the pack while the game is still
+#   shutting down with its display gone, and PortMaster's pm_finish kills gptokeyb before it can
+#   force the game. The game is left behind, sometimes for good (Alex the Allegator 4 hung in its
+#   own SIGTERM handler), holding /tmp/weston. Ports without the pack exit cleanly (Celeste Classic,
+#   DevilutionX checked).
 is_weston_port() {
     grep -q "westonwrap\.sh" "$ROM_FILE"
+}
+
+# end_weston_port_leftovers <port session id>: give what's left in the port's process group 3 s to
+# exit, then kill it, as spruce's menu button ends a port (button_actions.sh); then unmount the
+# pack if the port's script couldn't.
+end_weston_port_leftovers() {
+    _i=0
+    while kill -0 -"$1" 2>/dev/null && [ "$_i" -lt 30 ]; do
+        sleep 0.1
+        _i=$((_i + 1))
+    done
+    if kill -0 -"$1" 2>/dev/null; then
+        log_message "Weston port: processes still running 3 s after it ended; killing them"
+        kill -9 -"$1" 2>/dev/null
+        sleep 0.5
+    fi
+    if grep -q " /tmp/weston " /proc/mounts; then
+        umount /tmp/weston 2>/dev/null && log_message "Weston port: unmounted the pack its script left mounted"
+    fi
 }
 
 run_basedos_port() {
@@ -258,8 +284,9 @@ run_basedos_port() {
         log_message "PORTS_DIR: $PORTS_DIR, HOME=$HOME, LD_LIBRARY_PATH=$LD_LIBRARY_PATH, PATH=$PATH"
     fi
 
-    weston_udev=""
+    weston_port="" weston_udev=""
     if is_weston_port; then
+        weston_port=1
         export CRUSTY_LIBSDL=/usr/lib/libSDL2-2.0.so.0
         if command -v basedos-udev >/dev/null 2>&1 && basedos-udev start; then
             weston_udev=1
@@ -275,7 +302,10 @@ run_basedos_port() {
     wait "$SID"
     rm -f /tmp/last_port_sid
     [ -n "$tmp_launch_script" ] && rm -f "$tmp_launch_script"
-    [ -n "$weston_udev" ] && basedos-udev stop
+    if [ -n "$weston_port" ]; then
+        end_weston_port_leftovers "$SID"
+        [ -n "$weston_udev" ] && basedos-udev stop
+    fi
 
     device_cleanup_after_ports_run
 }
