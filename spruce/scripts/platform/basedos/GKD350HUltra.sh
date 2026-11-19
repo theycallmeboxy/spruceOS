@@ -213,13 +213,15 @@ set_default_ra_hotkeys() {
 #####   FIRMWARE   #####
   ######################
 
-# BasedOS updates (.bosupd) are not applied by spruce yet.
+# As the BaseOS platforms: BasedOS installs a baseos-gkd350hultra-<version>.bosupd from the card
+# root at the next boot (its basedos-update), so spruce's BaseOS updater only fetches or finds
+# one and reboots. Releases come from BASEOS_TARGET's repo (baseos_repo).
 check_if_fw_needs_update() {
-    echo "false"
+    baseos_fw_needs_update
 }
 
 local_fw_update_file() {
-    return 1
+    baseos_local_update_file
 }
 
 device_get_fw_version() {
