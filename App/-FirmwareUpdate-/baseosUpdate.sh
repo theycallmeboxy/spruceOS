@@ -1,5 +1,5 @@
 #!/bin/sh
-# BaseOS update for the Anbernic XX line and the Miyoo Flip, called by
+# BaseOS update for the Anbernic XX line, the Miyoo Flip and the GKD 350H Ultra (BasedOS), called by
 # firmwareUpdate.sh.
 #
 # BaseOS (1.3.0 and newer on the XX) updates itself from a .bosupd file dropped at the
@@ -32,7 +32,7 @@ INSTALLED="$(baseos_field BASEOS_VERSION)"
 TARGET="$(baseos_field BASEOS_TARGET)"
 case "$TARGET" in
     "") bail "Could not tell which BaseOS build this device runs, so there is nothing safe to download." ;;
-    my355)
+    my355|gkd350hultra)
         DONE_MSG="Your device will now reboot to install the update, then restart once finished."
         ;;
     *)

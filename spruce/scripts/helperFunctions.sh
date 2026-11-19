@@ -636,6 +636,7 @@ version_older_than() {
 baseos_repo() {
     case "$(sed -n 's/^BASEOS_TARGET=//p' /etc/baseos-release 2>/dev/null | tr -d '"')" in
         my355) echo "apommel/baseos-my355" ;;
+        gkd350hultra) echo "theycallmeboxy/BasedOS" ;;
         *) echo "pvaibhav/BaseOS" ;;
     esac
 }
