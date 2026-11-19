@@ -55,7 +55,7 @@ The board's own code sits above the banner; the sources it needs (`common64bit.s
 spruce's function plus one change: the alarm is rounded up to the RTC's resolution
 (`WAKE_ALARM_RESOLUTION`, 60 s in the cfg). The hym8563's alarm only has minutes; it fires at the start of
 the minute, possibly before `TARGET_EPOCH`, and `device_woke_via_timer` only allows `DRIFT_TOLERANCE`
-early, so "shutdown after sleeping" took the wake for a button press. Defined after the platform sources
+early, so it could fail to recognise the timer's wake (and "Shutdown after sleeping" not happen). Defined after the platform sources
 `sleep_functions.sh`, which only platform files source, so this copy is the one that runs. Was briefly a
 `WAKE_ALARM_RESOLUTION` branch in the shared file; removed.
 
