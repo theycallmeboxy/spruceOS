@@ -6,13 +6,40 @@
 # file keeps only its hardware. BasedOSCommon.cfg holds the matching variables.
 
 . "/mnt/SDCARD/spruce/scripts/platform/utils/baseos_session_shield.sh"
-. "/mnt/SDCARD/spruce/scripts/platform/utils/spruce_system_user.sh"
+
+# The spruce login (password happygaming) for spruce's dropbear and Samba, as the H700 BaseOS
+# platform adds it (AnbernicXXCommon.sh): bind-mounted copies of /etc/passwd and /etc/shadow, never
+# written to the base's files; a reboot drops them.
+add_spruce_system_user() {
+    grep -q '^spruce:' /etc/passwd 2>/dev/null && return 0
+
+    SP_HASH='$6$spruceos00$.nwqRlVkLe.wmkXcEHXcu127ZFxpFQ.8JDbdh4CRd.FbF5biVcIl9qeE9T6QNAbbJaFKp3MLUwlaPUN0alXcl.'
+    cp /etc/passwd /tmp/spruce_passwd || return 0
+    cp /etc/shadow /tmp/spruce_shadow || return 0
+    echo 'spruce:x:0:0:spruce:/root:/bin/sh' >> /tmp/spruce_passwd
+    echo "spruce:${SP_HASH}:19000:0:99999:7:::" >> /tmp/spruce_shadow
+    chmod 644 /tmp/spruce_passwd
+    chmod 600 /tmp/spruce_shadow
+    mount -o bind /tmp/spruce_passwd /etc/passwd
+    mount -o bind /tmp/spruce_shadow /etc/shadow
+}
 
 # For the board's device_init, as on the H700 BaseOS: the spruce login for dropbear and Samba, and
 # keep BasedOS's respawned session from remounting the card while save_poweroff shuts down.
 basedos_session_init() {
     add_spruce_system_user
     shield_baseos_session /sbin/frontend-session
+    basedos_portmaster_orientation
+}
+
+# PortMaster guesses the panel's orientation (stock's fbcon=rotate:3 and the panel's portrait mode
+# say 270) and would turn its GUI and ports on top of BasedOS's SDL2, which already turns the panel.
+# Its device_info.txt reads /tmp/spruce_device_info.env after its own guess; runtime.sh writes that
+# file (write_device_info) before device_init, so the orientation is added here.
+basedos_portmaster_orientation() {
+    [ -f /tmp/spruce_device_info.env ] || return 0
+    grep -q '^DISPLAY_ORIENTATION=' /tmp/spruce_device_info.env ||
+        echo 'DISPLAY_ORIENTATION="0"' >> /tmp/spruce_device_info.env
 }
 
   #################

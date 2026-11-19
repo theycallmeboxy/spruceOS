@@ -25,12 +25,13 @@ config lists, since builds differ by chip.
 ## BasedOS: base and board
 
 BasedOS (the GKD 350H Ultra) is a BaseOS-style base on the eMMC with BusyBox init and no systemd, NetworkManager
-or udev. Its boards stack two layers on the hardware they share with another base:
+or udev. Its platform stands alone, in two layers:
 
-- the board, `basedos/<PLATFORM>.{cfg,sh}`: its hardware. The 350H Ultra sources the dArkMoss RK3566 files first
-  (`darkmoss/dArkMossCommon.{cfg,sh}`: the same Mali GPU and much of the same board), then the base;
-- the base, `basedos/BasedOSCommon.{cfg,sh}`: what every BasedOS board shares, which replaces what the hardware
-  layer assumes of its own base (SSH, Wi-Fi, sleep, power, firmware, the library path, no udev).
+- the board, `basedos/<PLATFORM>.{cfg,sh}`: its hardware. The 350H Ultra's began as a copy of what it shares with
+  the dArkMoss RK3566 units (the same Mali GPU and much of the same board design): those values and functions
+  were copied in, not sourced, and keep their dArkMoss names, so either side can change without the other;
+- the base, `basedos/BasedOSCommon.{cfg,sh}`: what every BasedOS board shares (SSH, Wi-Fi, sleep, power,
+  firmware, the library path, no udev, the spruce login).
 
 Its boards report `BASEDOS` after their own name in `device_names`.
 

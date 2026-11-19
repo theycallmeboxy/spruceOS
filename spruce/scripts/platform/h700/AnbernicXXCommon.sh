@@ -13,7 +13,6 @@
 . "/mnt/SDCARD/spruce/scripts/platform/utils/sleep_functions.sh"
 . "/mnt/SDCARD/spruce/scripts/platform/h700/xx_lid_wake.sh"
 . "/mnt/SDCARD/spruce/scripts/platform/utils/baseos_session_shield.sh"
-. "/mnt/SDCARD/spruce/scripts/platform/utils/spruce_system_user.sh"
 
 # The XX line has no rumble GPIO, so utils/rumble.sh's rumble_gpio is not usable
 # here - see RUMBLE_GPIO in AnbernicXXCommon.cfg. The motor is driven through
@@ -560,6 +559,19 @@ device_cleanup_after_ports_run() {
 #     attaches an SMB password to an *existing* Unix account and fails without one.
 # Removing this would leave root/root as the only login on the XX line and break
 # file sharing, so it is load-bearing rather than leftover scaffolding.
+add_spruce_system_user() {
+    grep -q '^spruce:' /etc/passwd 2>/dev/null && return 0
+
+    SP_HASH='$6$spruceos00$.nwqRlVkLe.wmkXcEHXcu127ZFxpFQ.8JDbdh4CRd.FbF5biVcIl9qeE9T6QNAbbJaFKp3MLUwlaPUN0alXcl.'
+    cp /etc/passwd /tmp/spruce_passwd || return 0
+    cp /etc/shadow /tmp/spruce_shadow || return 0
+    echo 'spruce:x:0:0:spruce:/root:/bin/sh' >> /tmp/spruce_passwd
+    echo "spruce:${SP_HASH}:19000:0:99999:7:::" >> /tmp/spruce_shadow
+    chmod 644 /tmp/spruce_passwd
+    chmod 600 /tmp/spruce_shadow
+    mount -o bind /tmp/spruce_passwd /etc/passwd
+    mount -o bind /tmp/spruce_shadow /etc/shadow
+}
 
 set_event_arg_for_idlemon() {
     set_idlemon_to_pad

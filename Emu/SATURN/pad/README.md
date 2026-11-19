@@ -1,6 +1,6 @@
 # Saturn standalone pad seeds
 
-**UNVERIFIED** unless the table below says otherwise. Every file here (but the RG351P tables, below) was generated from the boards' platform cfgs without a check on a device. The user
+**UNVERIFIED.** Every file here (but the RG351P tables, below) was generated from the boards' platform cfgs without a check on a device. The user
 asked for this on 2026-10-16: "ship an auto-generated control map without verification for test purposes to kick off
 the control audit in a later phase". Each keymap entry carries `"spruce_generated": "unverified-2026-10-16"`. Drop
 the tag from a table once a device run has confirmed it. The RG351P tables (`es-`/`keymap-RG351P[-R3]`) were written
@@ -37,7 +37,6 @@ The libretro core's Saturn layout:
 |---|---|---|
 | Zero28, Zero40, XU20 (+ `-riders`) | magicx-input | GUID measured from the standalone's log (2026-10-15) |
 | Miniloong | retrogame_joypad | measured (2026-10-15) |
-| GKD350HUltra | gkd_atom_joypad | measured, and play-tested on the device (2026-11-17, no `unverified` tag) |
 | RGB30, RGB30-R3, RGB20SX | retrogame_joypad | computed: the Miniloong's pad ids |
 | A10Mini | GO-Super Gamepad | computed |
 | RG351P, RG351P-R3 | OpenSimHardware OSH PB Controller | computed (name CRC 0x5827), matches ROCKNIX es_input.cfg; hand-written 2026-11-19 (`unverified-2026-11-19`) |
@@ -50,7 +49,3 @@ and XU Mini M are left out on purpose (user, 2026-10-16: "Leave out everywhere",
 
 `docs/research/saturn-controls-20261015/scheme/gen_saturn_pads.py <spruceOS tree>` in the CFW/Spruce wrapper writes
 these files from the cfgs (`--check` compares), all but the hand-written RG351P tables. `scheme/test_seed.sh` tests the launch step under busybox.
-
-The GKD350HUltra table is not generated: it was written by hand from the measured pad and checked on the
-device, and the generator doesn't know BasedOS's platform folder. Keep `keymap-GKD350HUltra.json` and
-`es-GKD350HUltra.xml` when regenerating (`--check` may flag them).
