@@ -182,3 +182,73 @@ local_fw_update_file() {
 device_get_fw_version() {
     sed -n 's/^BASEOS_VERSION=//p' /etc/baseos-release 2>/dev/null | tr -d '"'
 }
+
+  ###################
+#####   PORTS   #####
+  ###################
+
+# spruce's run_port (emu/lib/ports_functions.sh), BasedOS's own copy, so that RetroArch-core ports
+# run. Their scripts call $raloc/retroarch, which is /usr/bin/retroarch for a firmware PortMaster's
+# scripts don't name (spruce among them), and BasedOS has no RetroArch of its own. As spruce does
+# for the A30 (run_A30_port), the port runs from a copy of its script whose retroarch call is
+# spruce's own RetroArch with this platform's config, started as spruce starts it (run_retroarch).
+# Every port is waited for, as run_port waits for the others, so the menu doesn't come back over
+# the game. standard_launch.sh calls this for PLATFORM_FAMILY basedos.
+run_basedos_port() {
+    log_message "Running port on $PLATFORM w/ ($PLATFORM_ARCHITECTURE)"
+
+    PORTS_DIR=/mnt/SDCARD/Roms/ports
+    export PORTS_DIR
+
+    device_prepare_for_ports_run
+
+    # Setup variables
+    export HOME="/mnt/SDCARD/Saves/flip/home"
+    export LD_LIBRARY_PATH="$PORTS_LD_LIBRARY_PATH:$LD_LIBRARY_PATH"
+    export LC_ALL=C
+
+    export XDG_DATA_HOME="/mnt/SDCARD/Persistent/portmaster/"
+    PM_DIR="/mnt/SDCARD/Persistent/portmaster/PortMaster"
+    export PATH="/mnt/SDCARD/spruce/flip/bin/:$PATH"
+
+    set_port_abxy_scheme
+    launch_script="$ROM_FILE"
+    tmp_launch_script=""
+    if is_retroarch_port; then
+        . /mnt/SDCARD/spruce/scripts/emu/lib/ra_functions.sh
+        prepare_ra_config 2>/dev/null
+        _ra="/mnt/SDCARD/RetroArch/${RA_BIN_64:-ra64.universal}"
+        tmp_launch_script=$(mktemp "${ROM_FILE}.basedos.XXXXXX") || {
+            log_message "Unable to create a temporary launch script for $ROM_FILE"
+            return 1
+        }
+        if ! sed -E '
+            /^[[:space:]]*#/! {
+                /[[:space:]](-c|--config)(=|[[:space:]])/! s#(^[[:space:]]*|[;&|][[:space:]]*)(exec[[:space:]]+)?([^[:space:];|&]*/)?retroarch([[:space:]]|$)#\1\2env HOME=/mnt/SDCARD/RetroArch/ '"$_ra"' --config '"$PLATFORM_CFG"'\4#
+            }
+        ' "$ROM_FILE" > "$tmp_launch_script"; then
+            log_message "Unable to rewrite the RetroArch call in $ROM_FILE"
+            rm -f "$tmp_launch_script"
+            return 1
+        fi
+        chmod 755 "$tmp_launch_script"
+        launch_script="$tmp_launch_script"
+        log_message "Launching RA port $ROM_FILE with $_ra --config $PLATFORM_CFG"
+        cd /mnt/SDCARD/RetroArch/
+    else
+        mount -o bind \
+            /mnt/SDCARD/Persistent/portmaster/bin/python3.10 \
+            /mnt/SDCARD/Persistent/portmaster/bin/python
+
+        log_message "PORTS_DIR: $PORTS_DIR, HOME=$HOME, LD_LIBRARY_PATH=$LD_LIBRARY_PATH, PATH=$PATH"
+    fi
+
+    setsid "$launch_script" > /mnt/SDCARD/Saves/spruce/port.log 2>&1 &
+    SID=$!
+    echo "$SID" > /tmp/last_port_sid
+    wait "$SID"
+    rm -f /tmp/last_port_sid
+    [ -n "$tmp_launch_script" ] && rm -f "$tmp_launch_script"
+
+    device_cleanup_after_ports_run
+}
