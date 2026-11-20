@@ -204,7 +204,8 @@ device_get_fw_version() {
 #   Crusty can't use that build: it tells its own SDL's calls from the program's by the first
 #   memory range of the library, and that SDL's first range isn't its code, so Crusty fakes SDL's
 #   display device for it too and recurses until it runs out of files. BasedOS's SDL2 also turns
-#   the picture for this panel.
+#   the picture for this panel. CRUSTY_LIBSDL32 likewise, for the pack's 32-bit ports (BasedOS's
+#   /usr/lib32), and Crusty's /tmp links to its SDL are removed first: it never replaces them.
 # - after the port, what's left of it ended (end_weston_port_leftovers). Quitting (gptokeyb's
 #   Select+Start) sends SIGTERM to every process whose command line names the game, westonwrap.sh
 #   among them, so the port script goes on to clean up and unmount the pack while the game is still
@@ -288,6 +289,14 @@ run_basedos_port() {
     if is_weston_port; then
         weston_port=1
         export CRUSTY_LIBSDL=/usr/lib/libSDL2-2.0.so.0
+        # 32-bit ports: the pack's own 32-bit lookup, which would find PortMaster's or another SDL
+        # first just the same.
+        [ -e /usr/lib32/libSDL2-2.0.so.0 ] && export CRUSTY_LIBSDL32=/usr/lib32/libSDL2-2.0.so.0
+        # Crusty links its SDL into /tmp once and never replaces the link, so a run without these
+        # (an older BasedOSCommon, a port started some other way) would keep the wrong SDL until
+        # a reboot.
+        # (/tmp/CRUSTY_LIBSDL64.so from the 64-bit Crusty, /tmp/CRUSTY_LIBSDL.so from the 32-bit one.)
+        rm -f /tmp/CRUSTY_LIBSDL64.so /tmp/CRUSTY_LIBSDL.so
         if command -v basedos-udev >/dev/null 2>&1 && basedos-udev start; then
             weston_udev=1
             log_message "Weston port: CRUSTY_LIBSDL=$CRUSTY_LIBSDL, udevd started"
