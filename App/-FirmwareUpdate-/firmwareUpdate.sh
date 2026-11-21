@@ -15,6 +15,8 @@ FW_DIR="/mnt/SDCARD/spruce/FIRMWARE_UPDATE"
 # get the free space on the SD card in MiB
 FREE_SPACE="$(df -m /mnt/SDCARD | awk '{print $4}' | tail -n 1)"
 
+# BasedOS (GKD 350H Ultra) has its own copy of the BaseOS updater (it asks BasedOS to install).
+grep -q '^BASEOS_NAME=BasedOS$' /etc/baseos-release 2>/dev/null && exec /mnt/SDCARD/App/-FirmwareUpdate-/basedosUpdate.sh
 # BaseOS (Anbernic XX, Miyoo Flip) updates itself from a .bosupd file at the root of the card.
 [ -f /etc/baseos-release ] && exec /mnt/SDCARD/App/-FirmwareUpdate-/baseosUpdate.sh
 

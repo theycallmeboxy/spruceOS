@@ -88,6 +88,7 @@ dArkMoss image service), `CPU_SMART_GOVENOR`, `GPU_SMART_GOVERNOR`, `GPU_OVERCLO
 | `Emu/N64/mupen64plus/pad/InputAutoCfg-GKD350HUltra.ini` | the Anbernic one-stick layout | This pad's raw numbers. |
 | `Emu/DC/default_configs/flycast/pads/GKD350HUltra/` | (own) | Positional A/B/X/Y, L1/R1 as Z/C, L2/R2 as the triggers. |
 | `RetroArch/platform/retroarch-GKD350HUltra.cfg.bak`, `RetroArch/.retroarch/autoconfig/linuxraw/gkd_atom_joypad.cfg` | (own) | This pad under RetroArch's linuxraw driver (no udevd). |
+| `App/-FirmwareUpdate-/basedosUpdate.sh` | `baseosUpdate.sh` | BasedOS installs an update only when asked (a `.bosupd` just left on the card isn't installed), so its updater runs `basedos-update request` before the reboot. Its own copy, so the BaseOS devices' updater is upstream's; `firmwareUpdate.sh` sends BasedOS (`BASEOS_NAME=BasedOS`) to it with one line, before the BaseOS line. |
 
 ## Where this platform still edits shared files, and why
 
@@ -100,7 +101,7 @@ Only where spruce has no per-platform mechanism, each change used by this platfo
   `App/PixelReader/launch.sh`, `spruce/portmaster/portmaster.txt`, the DraStic, Flycast, Mupen, PPSSPP,
   BigPEmu and GameTank launch functions (`emu/lib/*_functions.sh`; the last two: the positional SDL pad
   map, as for the Anbernics, which BasedOS's SDL needs to see this pad as a game controller at all),
-  `App/-FirmwareUpdate-/baseosUpdate.sh`.
+  `App/-FirmwareUpdate-/firmwareUpdate.sh` (the line that sends BasedOS to its own updater).
 - **Settings lists** (`Saves/spruce/spruce-config.json`): `GKD_350H_ULTRA` added to the Home button
   action's `devices`, spruce's mechanism for which settings a device shows.
 - **`emu/standard_launch.sh`'s PORTS arm** calls `run_basedos_port` for `PLATFORM_FAMILY` basedos: spruce
@@ -112,6 +113,7 @@ Only where spruce has no per-platform mechanism, each change used by this platfo
 
 - `darkmoss/dArkMossCommon.sh`, `h700/AnbernicXXCommon.sh`, `utils/sleep_functions.sh`,
   `runtimeHelper.sh`, and `utils/spruce_system_user.sh` removed: see the hooks above.
+- `App/-FirmwareUpdate-/baseosUpdate.sh`: upstream's again; BasedOS has its own copy (above).
 - **Mupen64Plus's Rice and Glide64mk2 plugins** (`Emu/N64/mupen64plus/*.so`): spruce's binaries, used by
   every device. The fork had rebuilt them with `M64P_VIEWPORT_Y` from theycallmeboxy/mupen64plus-spruce,
   whose pull request isn't merged; until it is, N64 games under those two plugins sit at the bottom of this

@@ -168,9 +168,10 @@ device_needs_strict_unmount() {
 #####   FIRMWARE   #####
   ######################
 
-# As the BaseOS platforms: BasedOS installs a baseos-<target>-<version>.bosupd from the card root at
-# the next boot (its basedos-update), so spruce's BaseOS updater only fetches or finds one and
-# reboots. Releases come from BASEOS_TARGET's repo (baseos_repo).
+# As the BaseOS platforms, BasedOS installs a baseos-<target>-<version>.bosupd from the card root at
+# the next boot (its basedos-update), but only when asked: BasedOS's own updater app
+# (App/-FirmwareUpdate-/basedosUpdate.sh) fetches or finds one, asks for the install (basedos-update
+# request) and reboots. Releases come from BASEOS_TARGET's repo (baseos_repo).
 check_if_fw_needs_update() {
     baseos_fw_needs_update
 }
