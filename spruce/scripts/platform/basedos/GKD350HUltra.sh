@@ -486,6 +486,21 @@ rgb_led() {
     return 0
 }
 
+# The button printed "Home" (B_HOME, BTN_TRIGGER_HAPPY1) in a game: the action picked in Settings ->
+# Button Settings -> Home button action, through the shared perform_action (button_actions.sh), as
+# the Smart Pro S and XU20 do. In the menu PyUI handles it itself (the same setting).
+device_home_button_pressed() {
+    action="$(get_config_value '.menuOptions."Button Settings".homeAction.selected' "Game Switcher")"
+    perform_action "$action"
+    # perform_action leaves game-state cleanup to the caller: only the actions that end the game.
+    case "$action" in
+        "Game Switcher"|"Exit game")
+            rm -f /tmp/cmd_to_run.sh
+            rm -f /mnt/SDCARD/spruce/flags/lastgame.lock
+            ;;
+    esac
+}
+
   ###############################
 #####   EMULATION AND PORTS   #####
   ###############################

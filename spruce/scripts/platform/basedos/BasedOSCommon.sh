@@ -259,7 +259,15 @@ run_basedos_port() {
     if is_retroarch_port; then
         . /mnt/SDCARD/spruce/scripts/emu/lib/ra_functions.sh
         prepare_ra_config 2>/dev/null
+        # RetroArch runs with HOME=/mnt/SDCARD/RetroArch/ and opens ALSA's default from its
+        # .asoundrc there: written for this device first, as run_retroarch does (the card may have
+        # been in another device last, whose sound card isn't here).
+        /mnt/SDCARD/spruce/scripts/asound-setup.sh /mnt/SDCARD/RetroArch
         _ra="/mnt/SDCARD/RetroArch/${RA_BIN_64:-ra64.universal}"
+        # The rewrite takes a line's retroarch command at its start or after ; & | (an exec
+        # first, a path before it). Every RetroArch port in PortMaster's catalogue (seven, checked
+        # 2026-11-21) calls it so: $raloc/retroarch $raconf -L <core> <content>. A line that
+        # passes its own -c/--config is left as it is.
         tmp_launch_script=$(mktemp "${ROM_FILE}.basedos.XXXXXX") || {
             log_message "Unable to create a temporary launch script for $ROM_FILE"
             return 1

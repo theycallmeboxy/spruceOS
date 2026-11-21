@@ -52,7 +52,7 @@ with zipfile.ZipFile(sys.argv[1]) as z: z.extractall(sys.argv[2])
     # gptokeyb2 needs the pad to be an SDL game controller; the H700 pad has
     # no built-in map, and .gptk files speak SDL's positional names.
     case "$PLATFORM" in
-        "Anbernic"*) export_sdl_gamecontroller_map positional ;;
+        "Anbernic"* | GKD350HUltra) export_sdl_gamecontroller_map positional ;;
     esac
     if [ -x ./gptokeyb2 ]; then
         ./gptokeyb2 "bigpemu" -c "./bigpemu.gptk" &

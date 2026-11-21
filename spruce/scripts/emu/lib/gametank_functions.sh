@@ -47,7 +47,7 @@ with zipfile.ZipFile(sys.argv[1]) as z: z.extractall(sys.argv[2])
 	[ -f /opt/inttools/gamecontrollerdb.txt ] && \
 		export SDL_GAMECONTROLLERCONFIG_FILE=/opt/inttools/gamecontrollerdb.txt
 	case "$PLATFORM" in
-		"Anbernic"*) export_sdl_gamecontroller_map positional ;;
+		"Anbernic"* | GKD350HUltra) export_sdl_gamecontroller_map positional ;;
 	esac
 
 	cd "$GTE_DIR"
