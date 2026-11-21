@@ -234,7 +234,7 @@
                 "selected": "1"
             },
             "homeAction": {
-                "devices": ["TRIMUI_SMART_PRO_S", "MAGICX_XU20"],
+                "devices": ["TRIMUI_SMART_PRO_S", "MAGICX_XU20", "GKD_350H_ULTRA"],
                 "display": "Home button action",
                 "description": "What the Home button does",
                 "options": [
