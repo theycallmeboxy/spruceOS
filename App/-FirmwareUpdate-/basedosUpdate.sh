@@ -38,7 +38,7 @@ DONE_MSG="Your device will now reboot to install the update, then restart once f
 # request_install: tell BasedOS to install the update at the next boot.
 request_install() {
     /usr/sbin/basedos-update request ||
-        bail "BasedOS couldn't be told to install the update. The file stays on the card: restart holding Select and choose Update."
+        bail "BasedOS couldn't be told to install the update. The file stays on the card: restart holding Select and choose Install update."
 }
 REPO="$(baseos_repo)"
 API="https://api.github.com/repos/$REPO/releases/latest"
