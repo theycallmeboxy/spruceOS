@@ -2,6 +2,14 @@
 <img width="310" height="310" alt="spruce labeled" src="https://github.com/user-attachments/assets/703691e2-dca0-49e6-987b-48ccfd16270b" />
 
 
+> [!WARNING]
+> **Unofficial fork, not made or supported by the spruce team.** It adds the GKD 350H Ultra, which runs spruce on
+> [BasedOS](https://theycallmeboxy.github.io/BasedOS/). The work is on the
+> [`gkd350h-ultra`](https://github.com/theycallmeboxy/spruceOS/tree/gkd350h-ultra) branch, and full spruce builds with it
+> are on the [releases page](https://github.com/theycallmeboxy/spruceOS/releases/latest), made automatically from each
+> spruce nightly. Report problems with them [on BasedOS](https://github.com/theycallmeboxy/BasedOS/issues), not to spruce.
+> For official spruce, go to [spruceUI/spruceOS](https://github.com/spruceUI/spruceOS).
+
 # spruceOS 
 
   - SpruceOS is a community software package intended to help you get the most out of your Miyoo, TrimUI and Anbernic RG XX devices.

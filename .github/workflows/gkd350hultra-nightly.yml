@@ -1,0 +1,263 @@
+name: 350H Ultra nightly (unofficial)
+
+# Fork only, not part of spruce. When spruce publishes a nightly, this builds it
+# with the 350H Ultra branch (gkd350h-ultra) merged in: a full spruceV*.7z,
+# published as a release of this repository. It checks spruce's OTA feed every
+# two hours and builds only when the pair (spruce's nightly commit, the branch's
+# commit) hasn't been built yet. A merge conflict fails the run (GitHub emails
+# the repository owner); nothing is pushed to any branch.
+#
+# The build steps follow spruce's create-branch-alpha-release.yml, without its
+# ScreenScraper credentials (box art stays on libretro) and publishing here
+# instead of spruceOSNightlies. Releases are made with GITHUB_TOKEN, which
+# starts no other workflow (spruce's update-ota-on-publish.yml never runs).
+
+on:
+  schedule:
+    - cron: '23 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Build even if this nightly and branch commit were built already'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gkd350hultra-nightly
+  cancel-in-progress: false
+
+env:
+  BRANCH: gkd350h-ultra
+  UPSTREAM: https://github.com/spruceUI/spruceOS.git
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find spruce's latest nightly and decide
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          feed=""
+          for u in https://spruceui.github.io/OTA/spruce \
+                   https://raw.githubusercontent.com/spruceUI/spruceui.github.io/refs/heads/main/OTA/spruce \
+                   https://raw.githubusercontent.com/spruceUI/spruceSource/refs/heads/main/OTA/spruce; do
+            feed="$(curl -fsSL --retry 3 "$u")" && [ -n "$feed" ] && break
+          done
+          field() { printf '%s\n' "$feed" | sed -n "s/^$1=//p" | tr -d '\r' | head -n1; }
+          NV="$(field NIGHTLY_VERSION)"; NC="$(field NIGHTLY_COMMIT)"; NI="$(field NIGHTLY_INFO)"
+          if [ -z "$NV" ] || [ -z "$NC" ]; then
+            echo "::error::spruce's OTA feed has no NIGHTLY_VERSION/NIGHTLY_COMMIT"; exit 1
+          fi
+          BC="$(git ls-remote "https://github.com/${GITHUB_REPOSITORY}.git" "refs/heads/${BRANCH}" | cut -f1)"
+          [ -n "$BC" ] || { echo "::error::no branch ${BRANCH}"; exit 1; }
+          MARK="built-from: spruce ${NC} + ${BRANCH} ${BC}"
+          echo "Nightly ${NV} (${NC}), ${BRANCH} at ${BC}"
+
+          if [ "$FORCE" != "true" ] &&
+             gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[] | select(.draft | not) | .body' | grep -qF "$MARK"; then
+            echo "Already built: ${MARK}"
+            echo "build=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          VERSION="${NV}-gkd350hultra"
+          TAG="v${VERSION}"; n=1
+          while gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" >/dev/null 2>&1; do
+            n=$((n + 1)); TAG="v${VERSION}.${n}"
+          done
+          {
+            echo "build=true"
+            echo "nightly_version=${NV}"; echo "nightly_commit=${NC}"; echo "nightly_info=${NI}"
+            echo "branch_commit=${BC}"; echo "mark=${MARK}"
+            echo "version=${VERSION}"; echo "tag=${TAG}"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.plan.outputs.build == 'true'
+        with:
+          ref: ${{ steps.plan.outputs.branch_commit }}
+          fetch-depth: 0
+          filter: blob:none
+
+      - name: Merge the nightly into the branch (in this run only)
+        if: steps.plan.outputs.build == 'true'
+        env:
+          NC: ${{ steps.plan.outputs.nightly_commit }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream "$UPSTREAM"
+          git fetch --no-tags --filter=blob:none upstream Development
+          git cat-file -e "${NC}^{commit}" || { echo "::error::nightly commit ${NC} not in spruce's Development"; exit 1; }
+          if ! git merge --no-edit -m "Build: spruce nightly ${NC} + ${BRANCH}" "$NC"; then
+            git diff --name-only --diff-filter=U | sed 's/^/::error::merge conflict in /'
+            echo "::error::${BRANCH} doesn't merge with spruce's nightly: rebase the branch onto Development"
+            exit 1
+          fi
+          {
+            echo "Branch: ${BRANCH} at ${{ steps.plan.outputs.branch_commit }}"
+            echo "spruce nightly: ${{ steps.plan.outputs.nightly_version }} at ${NC}"
+            echo ""
+            echo "350H Ultra commits (not in spruce's Development):"
+            git log --reverse "upstream/Development..${{ steps.plan.outputs.branch_commit }}" --pretty=tformat:'- %s'
+          } > commits_nightly.txt
+          {
+            echo "commits<<EOF"
+            git log --reverse "upstream/Development..${{ steps.plan.outputs.branch_commit }}" --pretty=tformat:'- %s' | tail -n 30
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Install 7zip
+        if: steps.plan.outputs.build == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full
+
+      - name: Write version marker and disclaimer
+        if: steps.plan.outputs.build == 'true'
+        run: |
+          : > "${{ steps.plan.outputs.version }}"
+          cat > UNOFFICIAL-BUILD.txt <<'EOF'
+          UNOFFICIAL BUILD - NOT MADE OR SUPPORTED BY THE SPRUCE TEAM
+
+          This is spruce with GKD 350H Ultra support added, built automatically from
+          https://github.com/theycallmeboxy/spruceOS (branch gkd350h-ultra) on top of a
+          spruce nightly. It is not an official spruce release. Please don't take problems
+          with it to the spruce team: report them at
+          https://github.com/theycallmeboxy/BasedOS/issues
+
+          On the 350H Ultra it needs BasedOS on the device's internal storage:
+          https://theycallmeboxy.github.io/BasedOS/
+
+          Updating: install newer builds from
+          https://github.com/theycallmeboxy/spruceOS/releases
+          spruce's own updater offers official spruce versions, which don't have 350H
+          Ultra support yet: after one, spruce no longer starts on the 350H Ultra until
+          a build from the page above is copied over it. The card keeps working on your
+          other spruce devices either way.
+
+          Use at your own risk. Nightly builds are made automatically and aren't tested
+          on the device before they're published.
+          EOF
+
+      - name: Recombine large files
+        if: steps.plan.outputs.build == 'true'
+        run: |
+          if ls spruce/flip/miyoo355_rootfs_32.img_part* 1>/dev/null 2>&1; then
+            rm -f spruce/flip/miyoo355_rootfs_32.img
+            cat spruce/flip/miyoo355_rootfs_32.img_part* > spruce/flip/miyoo355_rootfs_32.img
+            rm -f spruce/flip/miyoo355_rootfs_32.img_part*
+          fi
+          if ls spruce/flip/muOS-pixie-reduced.sqsh-part* 1>/dev/null 2>&1; then
+            rm -f spruce/flip/muOS-pixie-reduced.sqsh
+            cat spruce/flip/muOS-pixie-reduced.sqsh-part* > spruce/flip/muOS-pixie-reduced.sqsh
+            rm -f spruce/flip/muOS-pixie-reduced.sqsh-part*
+          fi
+          if ls RetroArch/.retroarch/cores64/scummvm_libretro.so.part* 1>/dev/null 2>&1; then
+            cat RetroArch/.retroarch/cores64/scummvm_libretro.so.part* > RetroArch/.retroarch/cores64/scummvm_libretro.so
+            rm -f RetroArch/.retroarch/cores64/scummvm_libretro.so.part*
+          fi
+
+      - name: Pull selected PyUI Themes
+        if: steps.plan.outputs.build == 'true'
+        run: |
+          mkdir -p Themes
+          R="https://github.com/spruceUI/PyUI-Themes/releases/download/1"
+          while IFS='|' read -r name file; do
+            wget -q -O "Themes/${name}.7z" "${R}/${file}.7z" || true
+          done <<'EOF'
+          ALEKFULL_NX_ES|ALEKFULL_NX_ES
+          ART_BOOK_OUTLINE|ART_BOOK_OUTLINE
+          ART_BOOK_NEXT|ART_BOOK_NEXT
+          Avocado|Avocado
+          Cosy by KyleBing|Cosy_by_KyleBing
+          Grape|Grape
+          GREEN|GREEN
+          HeyDW's Blue|HeyDWs_Blue
+          M|M
+          MINIMAL|MINIMAL
+          MinUInspired (logos)|MinUInspired_(logos)
+          OTB|OTB
+          Pico-8|Pico-8
+          SLABS|SLABS
+          SPRUCE (simple)|SPRUCE_(simple)
+          EOF
+          find Themes -name "*.7z" -empty -delete
+          ls -lh Themes
+
+      - name: Archive Licenses folder
+        if: steps.plan.outputs.build == 'true'
+        run: |
+          7z a -t7z -mx=9 Licenses.7z Licenses/
+          rm -rf Licenses/
+
+      - name: Create 7z archive
+        if: steps.plan.outputs.build == 'true'
+        run: |
+          F="spruceV${{ steps.plan.outputs.version }}.7z"
+          7z a -t7z -m0=lzma2:d=16m -mx=7 -ms=off -mf- "$F" * .tmp_update \
+            -xr!.git \
+            -xr!.github \
+            -x!.gitignore \
+            -x!.gitattributes \
+            -x!create_spruce_release.bat \
+            -x!create_spruce_release.sh \
+            -x!commits_nightly.txt \
+            -x!To-Do.txt
+          7z u "$F" commits_nightly.txt
+          size=$(stat -c %s "$F")
+          echo "$F: $size bytes"
+          # GitHub's limit for one release file.
+          [ "$size" -lt 2147483648 ] || { echo "::error::$F is over 2 GiB"; exit 1; }
+          echo "FILE=$F" >> "$GITHUB_ENV"
+
+      - name: Publish the release
+        if: steps.plan.outputs.build == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          cat > notes.md <<EOF
+          > [!WARNING]
+          > **Unofficial build, not made or supported by the spruce team.** spruce with GKD 350H Ultra
+          > support added, built automatically from a spruce nightly and not tested on the device first.
+          > Please report problems [on BasedOS](https://github.com/theycallmeboxy/BasedOS/issues), not to spruce.
+
+          A full spruce install: extract \`${FILE}\` to the root of a FAT32 card, as for any spruce
+          release. On the 350H Ultra it needs [BasedOS](https://theycallmeboxy.github.io/BasedOS/)
+          on the device. The card keeps working on your other spruce devices.
+
+          Update from this page, not from spruce's own updater: that one offers official spruce, which
+          has no 350H Ultra support yet (spruce then won't start on the 350H Ultra until a build from
+          here is copied over it).
+
+          spruce nightly [${{ steps.plan.outputs.nightly_version }}](${{ steps.plan.outputs.nightly_info }})
+          (\`${{ steps.plan.outputs.nightly_commit }}\`) with \`${BRANCH}\` at
+          \`${{ steps.plan.outputs.branch_commit }}\`.
+
+          350H Ultra changes (latest 30):
+          ${commits}
+
+          <!-- ${{ steps.plan.outputs.mark }} -->
+          EOF
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft \
+            --target "${{ steps.plan.outputs.branch_commit }}" \
+            --title "Unofficial: spruce ${{ steps.plan.outputs.nightly_version }} for the 350H Ultra" \
+            --notes-file notes.md
+          for attempt in 1 2 3; do
+            echo "Uploading $FILE, attempt ${attempt}..."
+            timeout 900 gh release upload "$TAG" "$FILE" --repo "$GITHUB_REPOSITORY" --clobber && break
+            if [ "$attempt" = 3 ]; then
+              echo "::error::giving up on $FILE"
+              gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes || true
+              exit 1
+            fi
+            sleep 30
+          done
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" >> "$GITHUB_STEP_SUMMARY"
