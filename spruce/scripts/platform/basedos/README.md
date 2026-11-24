@@ -25,7 +25,7 @@ the parts used here are copied, with their comments, under the banner "AS ON THE
 (copied)". They keep their dArkMoss names (`darkmoss_unit`, `darkmoss_vibrate`, ...) so a maintainer can
 match them to the originals.
 
-Copied (39): `new_execution_loop`, `resolve_pad_node`, `node_reports_volume_keys`,
+Copied (38): `new_execution_loop`, `resolve_pad_node`, `node_reports_volume_keys`,
 `resolve_key_event_node`, `setup_mainui_alias`, `device_get_battery_percent`,
 `device_get_charging_status`, `device_headphones_connected`, `device_get_hw_epoch`,
 `device_enter_sleep`, `darkmoss_exit_sleep`, `signal_emulators`,
@@ -34,7 +34,7 @@ Copied (39): `new_execution_loop`, `resolve_pad_node`, `node_reports_volume_keys
 `bt_headset_volume`, `get_backlight_level`, `apply_backlight`, `set_backlight`, `apply_volume`,
 `device_backlight_down`, `device_backlight_up`, `post_pyui_exit`, `enable_or_disable_rgb`, `rgb_led`,
 `setup_for_retroarch`, `device_prepare_for_ports_run`, `device_cleanup_after_ports_run`,
-`darkmoss_vibrate`, `vibrate`, `take_screenshot`, `get_config_path`, `send_menu_button_to_retroarch`;
+`darkmoss_vibrate`, `vibrate`, `take_screenshot`, `get_config_path`;
 and the shell variables `WAKE_ALARM_PATH`, `BT_PCM_RATE`, `ASOUND_SPRUCE_PCMS`. Comments that described
 dArkMoss's Debian base were reworded for BasedOS.
 
@@ -44,6 +44,7 @@ Differences from the originals:
 |---|---|
 | `take_screenshot` adds `transpose=1` to its ffmpeg filter, and only uses spruce's ffmpeg | The KMS plane it grabs is the panel's 1440x1600 scanout, turned (BasedOS's SDL2 turns every frame with the RGA); turned back, the capture is the 1600x1440 picture. dArkMoss's takes the turn from `SCREENSHOT_FILTER` in the platform cfg (upstream since cec13d1de); this copy keeps its own, and the cfg sets no `SCREENSHOT_FILTER`. BasedOS has no system ffmpeg to fall back to. |
 | `device_get_battery_percent` reads the kernel's gauge only | dArkMoss's reads BatteryPlus's file first, a dArkMoss image service. |
+| Not copied: `send_menu_button_to_retroarch` | dArkMoss's sends through Debian's `/usr/bin/nc` because spruce's `netcat` doesn't run there. It runs on BasedOS, so `common64bit.sh`'s own applies (checked on the unit 2026-11-24: it opens and closes RetroArch's menu). |
 | `setup_for_retroarch` has no 32-bit branch | BasedOS has no 32-bit RetroArch (`DEVICE_HAS_32_BIT_RA=false`). |
 | Not copied: `darkmoss_debug_dump`, `darkmoss_drm_holders`, `darkmoss_import_card_networks`, `darkmoss_power_action`, `darkmoss_prepare_for_poweroff`, `darkmoss_shutdown_logo`, `darkmoss_ssh_up`, `darkmoss_wifi_up`, `migrate_platform_files`, and `utils/rk817_pmic.sh` | Only dArkMoss's own `device_init`, Wi-Fi, SSH and power code reach them, and this platform replaces all of those (BasedOSCommon.sh, its own `device_init`). The RK817 PMIC isn't on this board. |
 | Not copied: dArkMoss's firmware functions (`darkmoss_installed_version`, `darkmoss_unit`, the update checks) | BasedOS updates through its own updater (BasedOSCommon.sh, `basedosUpdate.sh`). |

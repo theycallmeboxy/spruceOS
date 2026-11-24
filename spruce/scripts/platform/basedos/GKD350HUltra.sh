@@ -572,14 +572,6 @@ get_config_path() {
     echo "$SYSTEM_JSON"
 }
 
-# spruce's bundled netcat needs an ELF loader path this base lacks; Debian's
-# nc.openbsd at /usr/bin/nc does the job.
-send_menu_button_to_retroarch() {
-    if pgrep -f "ra64.universal|ra32.universal|retroarch" >/dev/null; then
-        echo "MENU_TOGGLE" | /usr/bin/nc -u -w1 127.0.0.1 55355
-    fi
-}
-
   ###################################
 #####   SLEEP: THE WAKE ALARM   #####
   ###################################
