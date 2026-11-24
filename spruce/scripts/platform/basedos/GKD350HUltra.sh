@@ -1,7 +1,7 @@
 #!/bin/sh
 # GKD 350H Ultra on BasedOS: this board's implementation. It stands alone: what it shares with the
 # dArkMoss RK3566 units (input discovery, the MainUI alias, backlight, ALSA volume, battery, sleep,
-# RetroArch setup) was copied from dArkMossCommon.sh (spruce faa0afebf, 2026-11-19) rather than
+# RetroArch setup) was copied from dArkMossCommon.sh (spruce faa0afebf, 2026-11-16) rather than
 # sourced, so changes there don't reach this platform and the reverse; the copies keep their
 # dArkMoss names. BasedOSCommon.sh holds what is BasedOS's rather than the board's (SSH, Wi-Fi,
 # sleep, power, firmware). Bluetooth is not brought up on BasedOS yet.
@@ -262,15 +262,8 @@ setup_mainui_alias() {
 #####   POWER   #####
   ###################
 
-# BatteryPlus's percent when its file holds 0-100, else the kernel's.
+# The kernel's gauge (dArkMoss's reads BatteryPlus's smoothed file first; BasedOS has no BatteryPlus).
 device_get_battery_percent() {
-    if [ -n "$BATTERYPLUS_PERCENT_FILE" ]; then
-        _bp=$(cat "$BATTERYPLUS_PERCENT_FILE" 2>/dev/null)
-        case "$_bp" in
-            ''|*[!0-9]*) ;;
-            *) [ "$_bp" -le 100 ] && { echo "$_bp"; return; } ;;
-        esac
-    fi
     cat "$BATTERY/capacity" 2>/dev/null || echo 0
 }
 
@@ -282,32 +275,13 @@ device_headphones_connected() {
     are_headphones_plugged_in
 }
 
-  ####################
-#####   FIRMWARE   #####
-  ####################
-
-# OS_VERSION is the release tag when CI cut one, else a build date. Only a
-# tagged release is a version worth comparing; no stamp at all (images before
-# it existed) or a date (an untagged build, or v1.0.7 whose build-all dropped
-# the tag) is older than every tagged release and gets the update offered.
-darkmoss_installed_version() {
-    sed -n 's/^OS_VERSION="\{0,1\}[vV]\{0,1\}\([0-9]\{1,\}\.[0-9]\{1,\}\.[0-9]\{1,\}\)"\{0,1\}$/\1/p' /etc/os-release 2>/dev/null
-}
-
-# The image's unit, not $PLATFORM: the RGB20SX runs the RGB30 image.
-darkmoss_unit() {
-    _unit="$(sed -n 's/^SPRUCE_PLATFORM="\(.*\)"/\1/p' /etc/os-release 2>/dev/null)"
-    printf '%s' "${_unit:-$PLATFORM}" | tr 'a-z' 'A-Z'
-}
-
   ###################
 #####   SLEEP   #####
   ###################
 
 WAKE_ALARM_PATH="/sys/class/rtc/rtc0/wakealarm"
 
-# The base has no hwclock (trixie moved it to util-linux-extra); the RTC
-# publishes the same value in sysfs.
+# The RTC's time from sysfs, without hwclock.
 device_get_hw_epoch() {
     cat /sys/class/rtc/rtc0/since_epoch 2>/dev/null
 }
@@ -317,9 +291,9 @@ device_enter_sleep() {
     log_message "Entering sleep w/ IDLE_TIMEOUT of $IDLE_TIMEOUT"
     save_sleep_info "$IDLE_TIMEOUT" || return 1
     set_wake_alarm "$IDLE_TIMEOUT" "$WAKE_ALARM_PATH" || return 1
-    # The base's sleep hook restores the brightness it saw before suspend, and
-    # resume thaws the game: a timed wake would light the panel and run the game
-    # until save_poweroff closes it. Only a manual wake restores both.
+    # A timed wake must not light the panel or run the game until save_poweroff
+    # closes it: the backlight goes off and the game stops here, and only a manual
+    # wake (device_exit_sleep) restores both.
     signal_emulators STOP
     echo 0 > "$DEVICE_BACKLIGHT_PATH"
     trigger_device_sleep
@@ -349,10 +323,6 @@ device_hdmi_connected() {
         *) return 1 ;;
     esac
 }
-
-  ###################
-#####   NETWORK   #####
-  ###################
 
   #################
 #####   AUDIO   #####
@@ -466,10 +436,11 @@ device_backlight_up() {
     set_backlight $(( $(get_backlight_level) + 1 ))
 }
 
-# The base keeps its ALSA config in ~/.asoundrc (/etc/asound.conf is empty), so a
-# program with another HOME would get raw hw:0,0. This is that file, its default
-# renamed spruce_speaker; asound-setup.sh adds spruce_bt and the default.
+# spruce's ALSA config is ~/.asoundrc (device_init writes it), so a program with
+# another HOME gets raw hw:0,0. device_write_default_asound_rc names its default
+# spruce_speaker; asound-setup.sh adds spruce_bt and the default.
 ASOUND_SPRUCE_PCMS=1
+
   #############################
 #####   MENU LOOP HOOKS   #####
   #############################
@@ -506,7 +477,7 @@ device_home_button_pressed() {
   ###############################
 
 # 64-bit only. The per-core library cases are the Flip's and apply unchanged:
-# same RK3566, same aarch64 userland. EASYRPG genuinely has no lib-RGB30.
+# the same aarch64 userland libraries. EASYRPG genuinely has no lib-RGB30.
 setup_for_retroarch() {
     case "$CORE" in
         uae4arm)      export LD_LIBRARY_PATH="$EMU_DIR:$LD_LIBRARY_PATH" ;;
@@ -514,13 +485,7 @@ setup_for_retroarch() {
         yabasanshiro) export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$EMU_DIR/lib64" ;;
     esac
 
-    case "$RA_BIN" in
-        ra32.*)
-            export CORE_DIR="$RA_DIR/.retroarch/cores"
-            export GLIBC_TUNABLES=glibc.rtld.execstack=2
-            ;;
-        *)      export CORE_DIR="$RA_DIR/.retroarch/cores64" ;;
-    esac
+    export CORE_DIR="$RA_DIR/.retroarch/cores64"
 
     if [ -f "$EMU_DIR/${CORE}_libretro.so" ]; then
         export CORE_PATH="$EMU_DIR/${CORE}_libretro.so"
@@ -580,16 +545,12 @@ vibrate() {
 # fb0 is a dead shim under DRM, so grab the KMS plane. That plane is the panel's scanout, 1440x1600
 # and turned (BasedOS's SDL2 turns every frame with the RGA), so the capture is turned back 90
 # degrees clockwise (ffmpeg transpose=1) to the 1600x1440 picture. spruce/bin/ffmpeg is the
-# static build with the kmsgrab demuxer (bin64/ffmpeg has none) and starts in
-# 76ms against Debian's 2.3s; Debian's stays as the fallback.
+# static build with the kmsgrab demuxer (bin64/ffmpeg has none); BasedOS has no ffmpeg of its own.
 take_screenshot() {
     screenshot_path="$1"
     [ -n "$screenshot_path" ] || return 1
-    _ff=""
-    for _c in /mnt/SDCARD/spruce/bin/ffmpeg /usr/bin/ffmpeg; do
-        [ -x "$_c" ] && { _ff="$_c"; break; }
-    done
-    [ -n "$_ff" ] || {
+    _ff=/mnt/SDCARD/spruce/bin/ffmpeg
+    [ -x "$_ff" ] || {
         log_message "take_screenshot: no ffmpeg with kmsgrab available"
         return 1
     }
@@ -619,24 +580,9 @@ send_menu_button_to_retroarch() {
     fi
 }
 
-  ####################
-#####   SHUTDOWN   #####
-  ####################
-
-# Where the base ships bootlogo.py (the cfg names it), put its reboot/poweroff logo on the panel's
-# fallback framebuffer while PyUI still holds the panel, so that status shows the moment it exits.
-darkmoss_shutdown_logo() {
-    [ -n "$DARKMOSS_BOOTLOGO" ] && [ -f "$DARKMOSS_BOOTLOGO" ] || return 0
-    grep -qw darkmoss.debug /proc/cmdline 2>/dev/null && return 0  # debug boots: kernel text, no logos
-    _img=/usr/share/bootlogo/logo-poweroff.bmp
-    [ "$1" = "--reboot" ] && _img=/usr/share/bootlogo/logo-reboot.bmp
-    [ -f "$_img" ] && /usr/bin/python3 -I "$DARKMOSS_BOOTLOGO" --image "$_img" >/dev/null 2>&1
-    return 0
-}
-
-  #####################
-#####   BRING-UP   #####
-  #####################
+  ###################################
+#####   SLEEP: THE WAKE ALARM   #####
+  ###################################
 
 # spruce's set_wake_alarm (utils/sleep_functions.sh), with the alarm rounded up to the RTC's
 # resolution: the hym8563 only has minute alarms (WAKE_ALARM_RESOLUTION), which fire at the start

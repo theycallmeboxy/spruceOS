@@ -25,25 +25,28 @@ the parts used here are copied, with their comments, under the banner "AS ON THE
 (copied)". They keep their dArkMoss names (`darkmoss_unit`, `darkmoss_vibrate`, ...) so a maintainer can
 match them to the originals.
 
-Copied (42): `new_execution_loop`, `resolve_pad_node`, `node_reports_volume_keys`,
+Copied (39): `new_execution_loop`, `resolve_pad_node`, `node_reports_volume_keys`,
 `resolve_key_event_node`, `setup_mainui_alias`, `device_get_battery_percent`,
-`device_get_charging_status`, `device_headphones_connected`, `darkmoss_installed_version`,
-`darkmoss_unit`, `device_get_hw_epoch`, `device_enter_sleep`, `darkmoss_exit_sleep`, `signal_emulators`,
+`device_get_charging_status`, `device_headphones_connected`, `device_get_hw_epoch`,
+`device_enter_sleep`, `darkmoss_exit_sleep`, `signal_emulators`,
 `device_exit_sleep`, `device_hdmi_connected`, `are_headphones_plugged_in`, `apply_playback_path`,
 `get_volume_level`, `volume_up`, `volume_down`, `get_current_volume`, `set_volume`,
 `bt_headset_volume`, `get_backlight_level`, `apply_backlight`, `set_backlight`, `apply_volume`,
 `device_backlight_down`, `device_backlight_up`, `post_pyui_exit`, `enable_or_disable_rgb`, `rgb_led`,
 `setup_for_retroarch`, `device_prepare_for_ports_run`, `device_cleanup_after_ports_run`,
-`darkmoss_vibrate`, `vibrate`, `take_screenshot`, `get_config_path`, `send_menu_button_to_retroarch`,
-`darkmoss_shutdown_logo`; and the shell variables `WAKE_ALARM_PATH`, `BT_PCM_RATE`,
-`ASOUND_SPRUCE_PCMS`.
+`darkmoss_vibrate`, `vibrate`, `take_screenshot`, `get_config_path`, `send_menu_button_to_retroarch`;
+and the shell variables `WAKE_ALARM_PATH`, `BT_PCM_RATE`, `ASOUND_SPRUCE_PCMS`. Comments that described
+dArkMoss's Debian base were reworded for BasedOS.
 
 Differences from the originals:
 
 | What | Why |
 |---|---|
-| `take_screenshot` adds `transpose=1` to its ffmpeg filter | The KMS plane it grabs is the panel's 1440x1600 scanout, turned (BasedOS's SDL2 turns every frame with the RGA); turned back, the capture is the 1600x1440 picture. dArkMoss's takes the turn from `SCREENSHOT_FILTER` in the platform cfg (upstream since cec13d1de); this copy keeps its own, and the cfg sets no `SCREENSHOT_FILTER`. |
-| Not copied: `darkmoss_debug_dump`, `darkmoss_drm_holders`, `darkmoss_import_card_networks`, `darkmoss_power_action`, `darkmoss_prepare_for_poweroff`, `darkmoss_ssh_up`, `darkmoss_wifi_up`, `migrate_platform_files`, and `utils/rk817_pmic.sh` | Only dArkMoss's own `device_init`, Wi-Fi, SSH and power code reach them, and this platform replaces all of those (BasedOSCommon.sh, its own `device_init`). The RK817 PMIC isn't on this board. |
+| `take_screenshot` adds `transpose=1` to its ffmpeg filter, and only uses spruce's ffmpeg | The KMS plane it grabs is the panel's 1440x1600 scanout, turned (BasedOS's SDL2 turns every frame with the RGA); turned back, the capture is the 1600x1440 picture. dArkMoss's takes the turn from `SCREENSHOT_FILTER` in the platform cfg (upstream since cec13d1de); this copy keeps its own, and the cfg sets no `SCREENSHOT_FILTER`. BasedOS has no system ffmpeg to fall back to. |
+| `device_get_battery_percent` reads the kernel's gauge only | dArkMoss's reads BatteryPlus's file first, a dArkMoss image service. |
+| `setup_for_retroarch` has no 32-bit branch | BasedOS has no 32-bit RetroArch (`DEVICE_HAS_32_BIT_RA=false`). |
+| Not copied: `darkmoss_debug_dump`, `darkmoss_drm_holders`, `darkmoss_import_card_networks`, `darkmoss_power_action`, `darkmoss_prepare_for_poweroff`, `darkmoss_shutdown_logo`, `darkmoss_ssh_up`, `darkmoss_wifi_up`, `migrate_platform_files`, and `utils/rk817_pmic.sh` | Only dArkMoss's own `device_init`, Wi-Fi, SSH and power code reach them, and this platform replaces all of those (BasedOSCommon.sh, its own `device_init`). The RK817 PMIC isn't on this board. |
+| Not copied: dArkMoss's firmware functions (`darkmoss_installed_version`, `darkmoss_unit`, the update checks) | BasedOS updates through its own updater (BasedOSCommon.sh, `basedosUpdate.sh`). |
 | Replaced by this platform's own: `device_init`, `device_write_default_asound_rc`, `device_low_battery_shutdown_ok`, `set_default_ra_hotkeys`, `set_event_arg_for_idlemon` | Board differences: the ES9018K2M DAC's "Digital" control as the volume (no softvol), the bq25890 charger, this pad's RetroArch numbering, idle watch on the pad's js node. |
 | Added: `device_home_button_pressed` (as the Smart Pro S's and XU20's, `tina-stock/SmartProS.sh`, `oakmoss/XU20.sh`) | The button printed "Home" (`B_HOME`): in a game, the Home button action from Button Settings (`homeAction`, listed for `GKD_350H_ULTRA` in `Saves/spruce/spruce-config.json`); without it, buttons_watchdog's call fell through to `device.sh`'s logging default. Checked on the unit 2026-11-21: Home in RetroArch saved the game and opened the Game Switcher. |
 
@@ -60,19 +63,19 @@ early, so it could fail to recognise the timer's wake (and "Shutdown after sleep
 `sleep_functions.sh`, which only platform files source, so this copy is the one that runs. Was briefly a
 `WAKE_ALARM_RESOLUTION` branch in the shared file; removed.
 
-### `GKD350HUltra.cfg`: copied from `darkmoss/dArkMossCommon.cfg`
+### `GKD350HUltra.cfg`: its own values
 
-The values dArkMoss's cfg sets and this platform doesn't set again, copied under the same banner, in place
-of sourcing it. **Kept as they were and not yet checked one by one against this board**; a few are
-probably dArkMoss-only and are candidates for review: `BATTERYPLUS_PERCENT_FILE` (BatteryPlus is a
-dArkMoss image service), `CPU_SMART_GOVENOR`, `GPU_SMART_GOVERNOR`, `GPU_OVERCLOCK_GOVERNOR`,
-`DEVICE_BACKLIGHT_PATH`, `SD_DEV`/`SD_MOUNTPOINT`.
+It sources `BasedOSCommon.cfg` first, then sets this board's values; nothing comes from `darkmoss/`. Some
+began as `dArkMossCommon.cfg`'s (the battery, backlight and SD card paths, the GPU's governors). Left
+out as dArkMoss-only (2026-11-24): `BATTERYPLUS_PERCENT_FILE` (a dArkMoss image service),
+`CPU_SMART_GOVENOR` (cpu0's governor; cpu0 is parked here), `RA_BIN_32` (no 32-bit RetroArch) and the
+`SYSTEM_VOLUME_*` table (this platform's `set_volume` maps the level itself).
 
 ### `BasedOSCommon.sh`: what is BasedOS's rather than the board's
 
 | Function | Copied from | Why its own |
 |---|---|---|
-| SSH, Wi-Fi, Bluetooth stubs, sleep, power, firmware functions | spruce's defaults (`device.sh`, `common64bit.sh`) and the BaseOS platforms' | BasedOS has no systemd or NetworkManager: spruce's wpa_supplicant/udhcpc defaults again over dArkMoss's nmcli ones, BasedOS's `basedos-suspend`, BusyBox `poweroff`/`reboot`, the BaseOS updater (`.bosupd`). |
+| Wi-Fi power, Bluetooth stubs, sleep, power, firmware functions | the BaseOS platforms' | BasedOS has no systemd or NetworkManager: the Wi-Fi link up and down (spruce's wpa_supplicant/udhcpc defaults in `device.sh` do the rest), BasedOS's `basedos-suspend`, BusyBox `poweroff`/`reboot`, the BaseOS updater (`.bosupd`). |
 | `add_spruce_system_user` | `h700/AnbernicXXCommon.sh` | The spruce login (dropbear, Samba) on a base whose `/etc/passwd` lacks it. Was briefly moved into a shared `utils/spruce_system_user.sh` used by both platforms; reverted, the H700 file is upstream's again. |
 | `basedos_portmaster_orientation` | (new; replaces a hook) | PortMaster guesses a 270-degree panel (stock's `fbcon=rotate:3`, the panel's portrait mode) and would turn its GUI and ports on top of BasedOS's SDL2, which already turns the panel. Adds `DISPLAY_ORIENTATION="0"` to `/tmp/spruce_device_info.env`, which runtime.sh writes before `device_init` and PortMaster's `device_info.txt` reads after its own guess. Was briefly a `PORTMASTER_DISPLAY_ORIENTATION` hook in `runtimeHelper.sh`; removed. |
 | `run_basedos_port` | `emu/lib/ports_functions.sh`'s `run_port`, plus the A30's script rewrite (`run_A30_port`) | PortMaster's RetroArch-core ports (Quake, ...) call `$raloc/retroarch`, which is `/usr/bin/retroarch` for a firmware their scripts don't name; BasedOS has no RetroArch of its own. A port runs from a copy of its script whose `retroarch` call is spruce's own RetroArch (`RA_BIN_64`) with this platform's config, started as `run_retroarch` starts it (with RetroArch's `.asoundrc` written for this device first, `asound-setup.sh`: the card may last have been in another device), and every port is waited for (run_port starts RetroArch ports in the background, so the menu would come back over the game). Ports on PortMaster's Weston pack (`westonwrap.sh`) also get BasedOS's udevd for their length (`basedos-udev start/stop`: libinput finds input devices only in udev's database, and BasedOS doesn't otherwise run udevd) and `CRUSTY_LIBSDL` pointing at BasedOS's SDL2 (the pack would take PortMaster's own libSDL2, which its Crusty layer can't tell from the program's calls, and recurses), `CRUSTY_LIBSDL32` at BasedOS's 32-bit one for the pack's 32-bit ports, and Crusty's `/tmp` links to its SDL removed before each such port (Crusty never replaces them, so one run without these would keep the wrong SDL until a reboot). After such a port, `end_weston_port_leftovers` gives what's left of its process group 3 s, kills it as spruce's menu button ends a port, and unmounts the pack if the port's script couldn't: quitting sends SIGTERM to westonwrap.sh along with the game, so the script cleans up while the game is still exiting, and the game could be left behind holding `/tmp/weston` (ports without the pack exit cleanly). |
@@ -97,8 +100,8 @@ Only where spruce has no per-platform mechanism, each change used by this platfo
 - **Device lists** (`Emu/*/config.json`, `App/*/config.json`): `BASEDOS` added where a system or app is
   checked on the device. This is spruce's mechanism for listing.
 - **Per-platform branches** spruce already has for other platforms: `helperFunctions.sh` (detection,
-  `device_names`, `baseos_repo`), `App/PyUI/launch.sh`, `App/Gallery/launch.sh`,
-  `App/PixelReader/launch.sh`, `spruce/portmaster/portmaster.txt`, the DraStic, Flycast, Mupen, PPSSPP,
+  `device_names`, `baseos_repo`), `App/PyUI/launch.sh`, `App/AccentColor/launch.sh`, `App/Gallery/launch.sh`,
+  `App/PixelReader/launch.sh`, the DraStic, Flycast, Mupen, PPSSPP,
   BigPEmu and GameTank launch functions (`emu/lib/*_functions.sh`; the last two: the positional SDL pad
   map, as for the Anbernics, which BasedOS's SDL needs to see this pad as a game controller at all),
   `App/-FirmwareUpdate-/firmwareUpdate.sh` (the line that sends BasedOS to its own updater).

@@ -1,9 +1,8 @@
 #!/bin/sh
 # BasedOS (github.com/theycallmeboxy/BasedOS), the base every basedos/ board shares: a BaseOS-style
 # system on the eMMC with BusyBox init and no systemd, NetworkManager or udev, which runs spruce from
-# the card. A board's .sh sources the hardware it shares with another base first (the 350H Ultra:
-# dArkMossCommon.sh), then this, which replaces what assumes that base's userland; the board's own
-# file keeps only its hardware. BasedOSCommon.cfg holds the matching variables.
+# the card. A board's .sh sources this (SSH, Wi-Fi, sleep, power, firmware, ports, the spruce
+# login), then defines its own hardware; BasedOSCommon.cfg holds the matching variables.
 
 . "/mnt/SDCARD/spruce/scripts/platform/utils/baseos_session_shield.sh"
 
@@ -47,11 +46,8 @@ basedos_portmaster_orientation() {
   #################
 
 # spruce's own dropbear owns port 22, as on the H700 BaseOS: with SSH on it stops BasedOS's sshd
-# and starts its own, with SSH off it stops both (sshFunctions.sh). No systemctl here, so this is
-# common64bit's name again over any systemd unit name a hardware layer gave.
-get_ssh_service_name() {
-    echo "dropbearmulti"
-}
+# and starts its own, with SSH off it stops both (sshFunctions.sh, common64bit.sh's
+# get_ssh_service_name). Nothing to define here.
 
   ##################
 #####   WIFI   #####
@@ -60,11 +56,8 @@ get_ssh_service_name() {
 # spruce owns Wi-Fi, as on its wpa_supplicant devices: its own supplicant on the card's saved
 # networks ($WPA_SUPPLICANT_FILE) and udhcpc (BasedOS's default.script sets the address, route and
 # DNS). BasedOS only loads the board's Wi-Fi driver at boot (BASEDOS_WIFI_MODULE); its own
-# supplicant runs only in maintenance mode or after a failing frontend. These are spruce's
-# defaults again over a hardware layer's NetworkManager ones.
-device_manages_own_wifi() {
-    return 1
-}
+# supplicant runs only in maintenance mode or after a failing frontend. device.sh's defaults
+# (wpa_supplicant networks, udhcpc) do the rest as they are.
 
 # The driver stays loaded (BasedOS loads it at boot; this covers a boot where that failed or hasn't
 # finished): on and off take the link up and down.
@@ -79,22 +72,6 @@ device_wifi_power_on() {
 
 device_wifi_power_off() {
     ip link set wlan0 down 2>/dev/null
-}
-
-device_start_dhcp_client() {
-    pgrep -f "udhcpc.*wlan0" >/dev/null || udhcpc -i wlan0 -b -t 5 -T 3
-}
-
-device_stop_dhcp_client() {
-    killall -9 udhcpc 2>/dev/null
-}
-
-device_wifi_connect() {
-    wpa_add_network "$1" "$2"
-}
-
-device_wifi_forget_all() {
-    wpa_forget_all_networks
 }
 
 device_extra_wifi_setup() {

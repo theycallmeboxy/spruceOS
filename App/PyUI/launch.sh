@@ -371,8 +371,7 @@ case "$PLATFORM" in
         export LD_LIBRARY_PATH="/mnt/SDCARD/App/PyUI/dll:/usr/lib:/mnt/SDCARD/spruce/flip/lib"
         export SDL_VIDEODRIVER=kmsdrm
         export SDL_AUDIODRIVER=alsa
-        # No udev on BasedOS (devtmpfs only): SDL's udev joystick probe must not wait for it.
-        export SDL_JOYSTICK_DISABLE_UDEV=1
+        redirect_output=0
 
         set -- LD_PRELOAD=/usr/lib/libwayland-client.so.0 /mnt/SDCARD/spruce/flip/bin/MainUI \
             /mnt/SDCARD/App/PyUI/main-ui/mainui.py \
@@ -384,10 +383,10 @@ case "$PLATFORM" in
         log_message "Starting PyUI on $PLATFORM"
         if [ $button_listener_mode -eq 1 ]; then
             env "$@"
-        else
-            # Bring-up platform: keep PyUI's stdout/stderr and record how it ended.
+        elif [ "$redirect_output" -eq 1 ]; then
             env "$@" >> /mnt/SDCARD/App/PyUI/run.txt 2>&1
-            log_message "PyUI on $PLATFORM exited with status $?"
+        else
+            env "$@" >/dev/null 2>&1
         fi
     ;;
 
