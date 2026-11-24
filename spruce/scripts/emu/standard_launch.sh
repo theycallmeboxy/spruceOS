@@ -203,7 +203,12 @@ case $EMU_NAME in
 
 	"PORTS")
 		. /mnt/SDCARD/spruce/scripts/emu/lib/ports_functions.sh
-		run_port
+		# BasedOS has no system RetroArch: its own copy of run_port (BasedOSCommon.sh).
+		if [ "$PLATFORM_FAMILY" = "basedos" ]; then
+			run_basedos_port
+		else
+			run_port
+		fi
 		;;
 
 	"PSP")
