@@ -121,7 +121,6 @@ Only where spruce has no per-platform mechanism, each change used by this platfo
 - **Mupen64Plus's Rice and Glide64mk2 plugins** (`Emu/N64/mupen64plus/*.so`): spruce's binaries, used by
   every device. The fork had rebuilt them with `M64P_VIEWPORT_Y` from theycallmeboxy/mupen64plus-spruce,
   whose pull request isn't merged; until it is, N64 games under those two plugins sit at the bottom of this
-  panel. The Mupen launch arm's `M64P_VIEWPORT_Y` comes in a commit of its own, for when that pull request
-  is in.
+  panel (the Mupen launch arm still sets the variable, which spruce's plugins ignore).
 - `Emu/SATURN/pad/README.md`: the note about this platform's hand-written pad files is in this file now
   (the table above).

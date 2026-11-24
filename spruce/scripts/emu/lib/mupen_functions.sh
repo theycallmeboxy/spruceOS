@@ -236,6 +236,17 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 				# overlay gets the pad's numbers and names too.
 				export EMU_OVERLAY_BTNMAP="a=1,b=0,l1=4,r1=5,menu=10,select=8,up=12,down=13,left=14,right=15"
 				export EMU_OVERLAY_BTNLABELS="B,A,X,Y,L1,R1,L2,R2,Select,Start,Menu,L3,Up,Down,Left,Right"
+				# The 4:3 canvas is centred across (M64P_VIEWPORT_X) but drawn at the
+				# bottom of this 1600x1440 panel: M64P_VIEWPORT_Y lifts Rice's and
+				# Glide64mk2's by half the spare height. Only the plugins built from
+				# theycallmeboxy/mupen64plus-spruce read it (a pull request to spruceUI);
+				# spruce's current ones ignore it and the picture stays at the bottom. GLideN64 gets the whole screen
+				# and centres itself, so it (and the overlay over it) takes no offset.
+				if [ "$SA_PLUGIN" != "gliden64" ] && [ "$DISPLAY_HEIGHT" -gt "$G_HEIGHT" ]; then
+					export M64P_VIEWPORT_Y=$(( (DISPLAY_HEIGHT - G_HEIGHT) / 2 ))
+				else
+					unset M64P_VIEWPORT_Y
+				fi
 				set -- "$@" \
 					--set "CoreEvents[Joy Mapping Stop]=J0B10/B9" \
 					--set "CoreEvents[Joy Mapping Save State]=J0B10/B5" \
