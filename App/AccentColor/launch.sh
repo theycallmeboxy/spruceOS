@@ -103,6 +103,17 @@ case "$PLATFORM" in
         PYTHON="/mnt/SDCARD/spruce/flip/bin/MainUI"
         # The oakMOSS cfgs set PYUI_ENV_DEVICE=true: the ENV_VAR device, below.
         ;;
+    "GKD350HUltra")
+        # As in App/PyUI/launch.sh: KMSDRM through PyUI's dll, the base's libraries ahead of
+        # flip/lib, and the base's libwayland-client preloaded for libmali (flip's python has an
+        # RPATH to flip/lib). Its cfg sets PYUI_ENV_DEVICE=true: the ENV_VAR device, below.
+        export PYSDL2_DLL_PATH="/mnt/SDCARD/App/PyUI/dll"
+        export LD_LIBRARY_PATH="/mnt/SDCARD/App/PyUI/dll:/usr/lib:/mnt/SDCARD/spruce/flip/lib"
+        export SDL_VIDEODRIVER=kmsdrm
+        export SDL_AUDIODRIVER=alsa
+        export LD_PRELOAD=/usr/lib/libwayland-client.so.0
+        PYTHON="/mnt/SDCARD/spruce/flip/bin/MainUI"
+        ;;
     *)
         log_message "Accent Color: platform $PLATFORM is not supported yet"
         show_message "Accent Color doesn't support this device ($PLATFORM) yet."

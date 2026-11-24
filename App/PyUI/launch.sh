@@ -357,6 +357,40 @@ case "$PLATFORM" in
     ;;
 
 ############################################################
+# GKD 350H Ultra (Rockchip RK3576S, under BasedOS)
+############################################################
+    "GKD350HUltra" )
+        # BasedOS carries the stock libmali (Bifrost G52, GBM/KMS, GLES only) and no compositor,
+        # so SDL draws through KMSDRM, as in the dArkMoss block above, with our usual dll.
+        # libmali (loaded through libgbm) needs libwayland-client. flip/lib's buster-era copy
+        # needs a libffi.so.8 BasedOS lacks, and when it wins libgbm fails to load and SDL
+        # reports "kmsdrm not available" (seen on the unit). flip's python3.10 has
+        # RPATH=$ORIGIN/../lib, which is searched before LD_LIBRARY_PATH, so ordering the path
+        # is not enough: PyUI alone gets the base's copy preloaded.
+        export PYSDL2_DLL_PATH=/mnt/SDCARD/App/PyUI/dll
+        export LD_LIBRARY_PATH="/mnt/SDCARD/App/PyUI/dll:/usr/lib:/mnt/SDCARD/spruce/flip/lib"
+        export SDL_VIDEODRIVER=kmsdrm
+        export SDL_AUDIODRIVER=alsa
+        redirect_output=0
+
+        set -- LD_PRELOAD=/usr/lib/libwayland-client.so.0 /mnt/SDCARD/spruce/flip/bin/MainUI \
+            /mnt/SDCARD/App/PyUI/main-ui/mainui.py \
+            -device ENV_VAR \
+            -logDir /mnt/SDCARD/Saves/spruce \
+            -pyUiConfig /mnt/SDCARD/App/PyUI/py-ui-config.json \
+            -cfwConfig /mnt/SDCARD/Saves/spruce/spruce-config.json "$@"
+
+        log_message "Starting PyUI on $PLATFORM"
+        if [ $button_listener_mode -eq 1 ]; then
+            env "$@"
+        elif [ "$redirect_output" -eq 1 ]; then
+            env "$@" >> /mnt/SDCARD/App/PyUI/run.txt 2>&1
+        else
+            env "$@" >/dev/null 2>&1
+        fi
+    ;;
+
+############################################################
 # oakMOSS A133P boards (MagicX Mini Zero 28, Zero 40, XU20 V32; Powkiddy V90S, V20; TrimUI Brick)
 ############################################################
 
