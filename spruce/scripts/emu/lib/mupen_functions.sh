@@ -228,6 +228,25 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 				export EMU_OVERLAY_BTNMAP="a=0,b=1,l1=4,r1=5,menu=$_mupen_hk,select=7,up=-1,down=-1,left=-1,right=-1"
 				export EMU_OVERLAY_BTNLABELS="A,B,X,Y,L1,R1,Start,Select,L3,R3,L2,R2"
 				;;
+			"GKD350HUltra")
+				# As the Anbernics: no SDL mapping for this pad in mupen's input
+				# plugin or gptokeyb2's, so the table (apply_mupen_pad_table) is all
+				# raw joystick, and the hotkeys are the same MENU chords in this
+				# pad's numbering (MENU b10, d-pad right b15 for the slot). The
+				# overlay gets the pad's numbers and names too.
+				export EMU_OVERLAY_BTNMAP="a=1,b=0,l1=4,r1=5,menu=10,select=8,up=12,down=13,left=14,right=15"
+				export EMU_OVERLAY_BTNLABELS="B,A,X,Y,L1,R1,L2,R2,Select,Start,Menu,L3,Up,Down,Left,Right"
+				set -- "$@" \
+					--set "CoreEvents[Joy Mapping Stop]=J0B10/B9" \
+					--set "CoreEvents[Joy Mapping Save State]=J0B10/B5" \
+					--set "CoreEvents[Joy Mapping Load State]=J0B10/B4" \
+					--set "CoreEvents[Joy Mapping Increment Slot]=J0B10/B15" \
+					--set "CoreEvents[Joy Mapping Reset]=J0B10/B0" \
+					--set "CoreEvents[Joy Mapping Screenshot]=J0B10/B3" \
+					--set "CoreEvents[Joy Mapping Pause]=J0B10/B2" \
+					--set "CoreEvents[Joy Mapping Mute]=J0B10/B1" \
+					--set "CoreEvents[Joy Mapping Speed Limiter Toggle]=J0B10/B8"
+				;;
 		esac
 		case "$PLATFORM" in
 			"A30")
@@ -238,6 +257,9 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 			"Anbernic"*)
 				# No gptokeyb2: the mali SDL2 has no evdev keyboard path, so
 				# its keystrokes never arrive. The pad table is all raw joystick.
+				;;
+			"GKD350HUltra")
+				# The pad table and the --set hotkeys above cover every button.
 				;;
 			*)
 				./gptokeyb2 "mupen64plus" -c "./defkeys.gptk" &
@@ -254,7 +276,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 
 		case "$PLATFORM" in
 			"A30") kill -9 $(pidof a30_input_shim) 2>/dev/null ;;
-			"Anbernic"*) ;;
+			"Anbernic"* | "GKD350HUltra") ;;
 			*) kill -9 $(pidof gptokeyb2) ;;
 		esac
 
@@ -318,7 +340,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 	export M64P_AUTOLOAD=1
 	export EMU_OVERLAY_ROMFILE="$ROM_FILE"
 	case "$PLATFORM" in
-		"Anbernic"* | XUMiniM | RG351P) export_sdl_gamecontroller_map positional ;;
+		"Anbernic"* | XUMiniM | RG351P | GKD350HUltra) export_sdl_gamecontroller_map positional ;;
 	esac
 	treat_dpad_as_analog
 	./mupen64plus \

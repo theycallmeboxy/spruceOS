@@ -79,6 +79,19 @@
       "selected": "DSperate",
       "overrides": {}
     },
+    "Emulator_BASEDOS": {
+      "display": "Emulator",
+      "devices": [
+        "BASEDOS"
+      ],
+      "options": [
+        "DSperate",
+        "DraStic-original",
+        "pokedaisy_ds"
+      ],
+      "selected": "DSperate",
+      "overrides": {}
+    },
     "dsperateVideoEffect": {
       "display": "DSperate: Video Effect",
       "devices": [
@@ -89,7 +102,8 @@
         "GKD_PIXEL2",
         "DARKMOSS",
         "MIYOO_A30",
-        "OAKMOSS_A133P"
+        "OAKMOSS_A133P",
+        "BASEDOS"
       ],
       "options": [
         "None",

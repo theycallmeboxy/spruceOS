@@ -181,6 +181,13 @@ run_drastic_AnbernicH700() { run_drastic64 ; }
 run_drastic_DarkMoss() { run_drastic64 ; }
 
 
+##### GKD 350H ULTRA (BasedOS) #####
+
+# As on dArkMoss: the unmodified 64-bit DraStic, drawn through BasedOS's system SDL, which
+# turns the picture for the rotated panel.
+run_drastic_GKD350HUltra() { run_drastic64 ; }
+
+
 ##### OAKMOSS A133P (MagicX Mini Zero 28, Zero 40, XU20 V32; Powkiddy V90S, V20; TrimUI Brick) #####
 
 # Same SoC as the Smart Pro, so the same two DraStic builds apply. Without these

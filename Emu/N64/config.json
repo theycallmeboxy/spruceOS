@@ -71,7 +71,8 @@
         "TRIMUI_SMART_PRO_S",
         "GKD_PIXEL2",
         "ANBERNIC_RGXX",
-        "OAKMOSS_A133P"
+        "OAKMOSS_A133P",
+        "BASEDOS"
       ],
       "options": [
         "km_ludicrousn64_2k22_xtreme_amped",
@@ -131,7 +132,8 @@
     "GKD_PIXEL2",
     "ANBERNIC_RGXX",
     "DARKMOSS",
-    "OAKMOSS_A133P"
+    "OAKMOSS_A133P",
+    "BASEDOS"
   ],
   "alternativeFolderNames": [
     "NINTENDO64"
